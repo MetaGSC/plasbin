@@ -1,3 +1,9 @@
+import h5py
+import numpy as np
+from pathlib import Path
+import torch
+from torch.utils import data
+
 class HDF5Dataset(data.Dataset):
     def __init__(self, file_path, recursive, load_data, data_cache_size=3):
         super().__init__()
@@ -98,12 +104,10 @@ class HDF5Dataset(data.Dataset):
         for k in range(nlabels):
             lbl = int(self.get_data("label", k))
             count[lbl] += 1
-        print(count)
         weight_per_class = [0.] * nclasses
         N = float(sum(count))
         for i in range(nclasses):
             weight_per_class[i] = N/float(count[i])
-        print(weight_per_class)
         weight = [0] * nlabels
         for idx, val in enumerate(self.get_data_infos('label')):
             weight[idx] = weight_per_class[val['value']]
