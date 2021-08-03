@@ -97,18 +97,3 @@ class HDF5Dataset(data.Dataset):
         # get new cache_idx assigned by _load_data_info
         cache_idx = self.get_data_infos(type)[i]['cache_idx']
         return self.data_cache[fp][cache_idx]
-
-    def make_weights_for_balanced_classes(self, nclasses):
-        count = [0] * nclasses
-        nlabels = len(self.get_data_infos('label'))
-        for k in range(nlabels):
-            lbl = int(self.get_data("label", k))
-            count[lbl] += 1
-        weight_per_class = [0.] * nclasses
-        N = float(sum(count))
-        for i in range(nclasses):
-            weight_per_class[i] = N/float(count[i])
-        weight = [0] * nlabels
-        for idx, val in enumerate(self.get_data_infos('label')):
-            weight[idx] = weight_per_class[val['value']]
-        return weight
