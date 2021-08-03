@@ -1,9 +1,3 @@
-import h5py
-import numpy as np
-from pathlib import Path
-import torch
-from torch.utils import data
-
 class HDF5Dataset(data.Dataset):
     def __init__(self, file_path, recursive, load_data, data_cache_size=3):
         super().__init__()
@@ -47,19 +41,17 @@ class HDF5Dataset(data.Dataset):
                     if load_data:
                         # add data to the data cache
                         idx = self._add_to_cache(ds.value, file_path)
-                    
-                    # type is derived from the name of the dataset; we expect the dataset
-                    # name to have a name such as 'data' or 'label' to identify its type
-                    # we also store the shape of the data in case we need it
-                    self.data_info.append({'file_path': file_path, 'type': dname, 'shape': ds.shape, 'cache_idx': idx})
+						
+                    if(dname == 'label'):
+                        self.data_info.append({'file_path': file_path, 'value':ds[0], 'type': dname, 'shape': ds.shape, 'cache_idx': idx})
+                    else:
+                        self.data_info.append({'file_path': file_path, 'type': dname, 'shape': ds.shape, 'cache_idx': idx})
 
     def _load_data(self, file_path):
 
         with h5py.File(file_path) as h5_file:
             for gname, group in h5_file.items():
                 for dname, ds in group.items():
-                    # add data to the data cache and retrieve
-                    # the cache index
                     idx = self._add_to_cache(ds[()], file_path)
 
                     # find the beginning index of the hdf5 file we are looking for
@@ -99,3 +91,20 @@ class HDF5Dataset(data.Dataset):
         # get new cache_idx assigned by _load_data_info
         cache_idx = self.get_data_infos(type)[i]['cache_idx']
         return self.data_cache[fp][cache_idx]
+
+    def make_weights_for_balanced_classes(self, nclasses):
+        count = [0] * nclasses
+        nlabels = len(self.get_data_infos('label'))
+        for k in range(nlabels):
+            lbl = int(self.get_data("label", k))
+            count[lbl] += 1
+        print(count)
+        weight_per_class = [0.] * nclasses
+        N = float(sum(count))
+        for i in range(nclasses):
+            weight_per_class[i] = N/float(count[i])
+        print(weight_per_class)
+        weight = [0] * nlabels
+        for idx, val in enumerate(self.get_data_infos('label')):
+            weight[idx] = weight_per_class[val['value']]
+        return weight
