@@ -1,16 +1,9 @@
-import h5py
-import numpy as np
-from pathlib import Path
-import torch
-from torch.utils import data
-
 class HDF5Dataset(data.Dataset):
-    def __init__(self, file_path, recursive, load_data, data_cache_size=3, transform=None):
+    def __init__(self, file_path, recursive, load_data, data_cache_size=3):
         super().__init__()
         self.data_info = []
         self.data_cache = {}
         self.data_cache_size = data_cache_size
-        self.transform = transform
 
         # Search for all h5 files
         p = Path(file_path)
@@ -28,14 +21,11 @@ class HDF5Dataset(data.Dataset):
     def __getitem__(self, index):
         # get data
         x = self.get_data("data", index)
-        if self.transform:
-            x = self.transform(x)
-        else:
-            x = torch.from_numpy(x)
+        x = torch.from_numpy(x)
 
         # get label
         y = self.get_data("label", index)
-        y = torch.from_numpy(y)
+        y = torch.tensor(y[0])
         return (x, y)
 
     def __len__(self):
@@ -95,7 +85,7 @@ class HDF5Dataset(data.Dataset):
         return data_info_type
 
     def get_data(self, type, i):
-      
+
         fp = self.get_data_infos(type)[i]['file_path']
         if fp not in self.data_cache:
             self._load_data(fp)
