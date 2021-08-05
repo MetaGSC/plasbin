@@ -1,14 +1,12 @@
+import torch
+
 def make_weights_for_balanced_classes(nclasses, labels):
-        count = [0] * nclasses
-        nlabels = len(labels)
-        for k in range(nlabels):
-            lbl_ind = int(labels[k])
-            count[lbl_ind] += 1
-        weight_per_class = [0.] * nclasses
-        N = float(sum(count))
-        for i in range(nclasses):
-            weight_per_class[i] = N/float(count[i])
-        weight = [0] * nlabels
-        for idx, val in enumerate(labels):
-            weight[idx] = weight_per_class[val]
-        return weight
+    count = torch.bincount(labels, minlength=nclasses)
+    weight_per_class = [0.] * nclasses
+    N = torch.sum(count)
+    weight_per_class = torch.mul(torch.reciprocal(count), N)
+    weight_per_class[weight_per_class == float("Inf")] = 0
+    weights = torch.zeros(len(labels), dtype=torch.float)
+    for idx, val in enumerate(labels):
+        weights[idx] = weight_per_class[val]
+    return weights
