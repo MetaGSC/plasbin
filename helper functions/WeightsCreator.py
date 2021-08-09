@@ -2,7 +2,6 @@ import torch
 
 def make_weights_for_balanced_classes(nclasses, labels):
     count = torch.bincount(labels, minlength=nclasses)
-    weight_per_class = [0.] * nclasses
     N = torch.sum(count)
     weight_per_class = torch.mul(torch.reciprocal(count), N)
     weight_per_class[weight_per_class == float("Inf")] = 0
