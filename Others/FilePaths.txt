@@ -1,0 +1,14 @@
+/Datasets/DNAML_Plasmid/Data/preprocess/db/7mers/plasmid
+
+
+/home/fypmetagsc/preprocess/db/7mers/chromosome2
+Gayal Dassanayake10:44
+#!/bin/bash
+for FILE in out/preprocess/7mers/plasmid/*;
+do 
+    NAME=$(basename -- "$FILE")
+    INDEX="${NAME%.*}"
+    cat $FILE | gzip >  out/preprocess/7mers/plasmid-comp/$INDEX.gz
+done;
+
+2164494 - chromosome kmers count
