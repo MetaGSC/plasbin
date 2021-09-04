@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 
 Testing/
+Results/
 
 # C extensions
 *.so
