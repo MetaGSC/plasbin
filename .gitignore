@@ -5,6 +5,10 @@ __pycache__/
 
 Testing/
 Results/
+Others/
+Other notebooks/
+Chromosome_data.csv
+Plasmid_data.csv
 
 # C extensions
 *.so

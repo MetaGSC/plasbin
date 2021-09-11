@@ -8,7 +8,7 @@ def move_and_split_datasets(CurrentDirectory, NewDirectory, InfoCSVpath, copyFil
     feature_array = os.listdir(CurrentDirectory+'/Data')
     _create_folders(NewDirectory, feature_array)
     _divide_datasets(InfoCSVpath, testFraction, CurrentDirectory+'/BatchCSVs', batchSize)
-    print(f'Data info divided into batches of {batchsize}')
+    print(f'Data info divided into batches of {batchSize}')
     batchList = os.listdir(CurrentDirectory+'/BatchCSVs')
     for k in range(len(batchList)):
         csv_name = CurrentDirectory+'/BatchCSVs/'+ batchList[k]
@@ -17,7 +17,7 @@ def move_and_split_datasets(CurrentDirectory, NewDirectory, InfoCSVpath, copyFil
         print(f'Batch {k+1} out of {len(batchList)} processed')
     
 
-def split_train_test_datasets(CurrDir, NewDir, missReportDir=None, csvPath, copyFiles=False, zipped=True):
+def split_train_test_datasets(CurrDir, NewDir, csvPath, missReportDir=None,  copyFiles=False, zipped=True):
     if missReportDir is None:
         missReportDir = NewDir
     df_split = pd.read_csv(csvPath)
@@ -35,7 +35,7 @@ def _move_data_files(row, CurrDir, NewDir, missReportDir, copyFiles, zipped, len
         print(f'{row.name} data files out of {length} {'copied' if copyFiles else 'moved'}')
     for data_folder in data_array:
         try:
-            if(!copyFiles):
+            if( not copyFiles):
                 os.rename(CurrDir+"/Data/"+data_folder+"/"+filename, NewDir +
                         "/"+str(row['type'])+"/Data/"+data_folder+"/"+filename)
             else:
@@ -53,7 +53,7 @@ def _move_label_files(row, CurrDir, NewDir, missReportDir, copyFiles, zipped, le
     if((int(row.name) % 10 == 0 and int(row.name) < 100) or int(row.name) % 1000 == 0):
         print(f'{row.name} label files out of {length} {'copied' if copyFiles else 'moved'}')
     try:
-        if(!copyFiles):
+        if( not copyFiles):
             os.rename(CurrDir+"/Label/"+filename, NewDir +
                                 "/"+str(row['type'])+"/Label/"+filename)
         else:
@@ -91,5 +91,4 @@ def _create_folders(mainDir, dataFolderArray):
     os.mkdir(mainDir+'/Train/Label')
     for folder in dataFolderArray:
         os.mkdir(mainDir+'/Test/Data/'+folder)
-        os.mkdir(mainDir+'/Train/Data/'+folder)
-
+        os.mkdir(mainDir + '/Train/Data/' + folder)

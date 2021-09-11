@@ -15,45 +15,90 @@ featureNames = {'orit': ['id', 'OriT-identity', 'OriT-length', 'OriT-bitscore', 
                 'inc-fac': ['id', 'IF-identity', 'IF-length', 'IF-bitscore', 'IF-count'],
                 'circular': ['id', 'Cir-alignment_a_mean', 'Cir-alignment_b_mean', 'Cir-mismatches mean', 'Cir-count'],
                 '7mers': ['7mer - '+str(i) for i in range(8192)]}
-logfile = "log.txt"
+logfile = None
 featureCounts = {}
 batchFiles = []
-plas_batches = 0
-chrom_batches = 0
-curr_plas_batches = 0
-curr_chrom_batches = 0
 
 
-def create_hdf5_datasets(directory, hdf5_path, plasmid_classes_csv, chromosome_classes_csv, batches_per_iteration = 1):
+def create_hdf5_datasets(directory, plasmid_classes_csv, chromosome_classes_csv, hdf5_path=None, test_fraction = 0.2, batches_per_iteration=1):
+    global logfile
+    plasmid_class_count = 0
+    chromosome_class_count = 0
+    
     print('\n======= HDF5 dataset Creator ========\n')
+    if (hdf5_path == None):
+        hdf5_path = directory + '/'
+    training_hdf5_path = hdf5_path+'training.h5'
+    testing_hdf5_path = hdf5_path+'testing.h5'
+
+    logfile = hdf5_path + "log.txt"
+    print(f'Any detected issue will be logged in {logfile} file')
 
     print('Cheking the Directory Structure....')
     _checkFileStructure(directory, hdf5_path,
                         plasmid_classes_csv, chromosome_classes_csv)
-    print('Directory is in the standard format')
+    _logToFilewithPrint('Directory is in the standard format')
     plas_batches = (len(batchFiles[0]))
     chrom_batches = (len(batchFiles[1]))
     curr_plas_batches = 0
     curr_chrom_batches = 0
-    print(f'{len(batchFiles[0])} batches of plasmids and {len(batchFiles[1])} batches of chromosomes found')
-
-    logfile = os.path.dirname(hdf5_path) + "/log.txt"
-    print(f'Any detected issue will be logged in {logfile} file')
+    _logToFilewithPrint(
+        f'{len(batchFiles[0])} batches of plasmids and {len(batchFiles[1])} batches of chromosomes found')
 
     print('Surveying Plasmid Info....')
     plasmid_labels_df = pd.read_csv(
         directory + '/plasmid/target.csv', names=['batch', 'id', 'seq_ID'])
     plasmid_labels_df = plasmid_labels_df.drop_duplicates()
-    print(f'{len(plasmid_labels_df)} plasmid labels detected')
+    _logToFilewithPrint(f'{len(plasmid_labels_df)} plasmid labels detected')
+
+    plasmid_classes_df = pd.read_csv(plasmid_classes_csv)
+    plasmid_labels_df = plasmid_labels_df.merge(
+        plasmid_classes_df[['Accession', 'Phylum']], how='left', left_on='seq_ID', right_on='Accession')
+    plasmid_labels_df["label"] = plasmid_labels_df.groupby(
+        ['Phylum'], sort=False).grouper.group_info[0]
+
+    plasmid_class_count = plasmid_labels_df.label.nunique()
+    _logToFilewithPrint(
+        f'{len(plasmid_labels_df)} labels classified into {plasmid_labels_df.label.nunique()} classes')
+
+    temp_df = plasmid_labels_df.groupby(
+        plasmid_labels_df['label']).sample(frac=test_fraction)
+    temp_df['type'] = 'Test'
+    plasmid_labels_df = plasmid_labels_df.merge(temp_df, how="outer", on=['batch', 'id', 'seq_ID', 'Accession', 'Phylum', 'label']).fillna("Train")
+
+    print(plasmid_labels_df['label'].value_counts())
+    plasmid_labels_df.to_csv(hdf5_path+'final_plasmid_labels.csv')
 
     print('Surveying Chromosome Info....')
     chromosome_labels_df = pd.read_csv(
         directory + '/chromosome/target.csv', names=['batch', 'id', 'seq_ID'])
     chromosome_labels_df = chromosome_labels_df.drop_duplicates()
-    print(f'{len(chromosome_labels_df)} chromosome labels detected')
+    _logToFilewithPrint(
+        f'{len(chromosome_labels_df)} chromosome labels detected')
 
+    chromosome_classes_df = pd.read_csv(chromosome_classes_csv)
+    chromosome_labels_df = chromosome_labels_df.merge(
+        chromosome_classes_df[['Assembly_Accession', 'Phylum']], how='left', left_on='seq_ID', right_on='Assembly_Accession')
+    chromosome_labels_df["label"] = chromosome_labels_df.groupby(
+        ['Phylum'], sort=False).grouper.group_info[0]
+
+    chromosome_labels_df["label"] = chromosome_labels_df["label"] + (plasmid_class_count + 1)
+    chromosome_class_count = chromosome_labels_df.label.nunique()
+    _logToFilewithPrint(
+        f'{len(chromosome_labels_df)} labels classified into {chromosome_labels_df.label.nunique()} classes')
+
+    temp_df = chromosome_labels_df.groupby(
+        chromosome_labels_df['label']).sample(frac=test_fraction)
+    temp_df['type'] = 'Test'
+    chromosome_labels_df = chromosome_labels_df.merge(
+        temp_df, how="outer", on=['batch', 'id', 'seq_ID', 'Assembly_Accession', 'Phylum', 'label']).fillna("Train")
+
+    print(chromosome_labels_df['label'].value_counts())
+    chromosome_labels_df.to_csv(hdf5_path+'final_chromosome_labels.csv')
+
+    
     for i in range(0, len(batchFiles[0]), batches_per_iteration):
-        print(
+        _logToFilewithPrint(
             f'\n----ITERATION {int((i+batches_per_iteration)/batches_per_iteration)}----')
         print('\nExtracting Features....')
         if (curr_plas_batches + batches_per_iteration > plas_batches):
@@ -62,8 +107,8 @@ def create_hdf5_datasets(directory, hdf5_path, plasmid_classes_csv, chromosome_c
         else:
             iteration_batches = [m for m in range(i, i+batches_per_iteration)]
         plasmid_features_df = _read_features(directory + "/plasmid/Data",iteration_batches)
-        _logToFile(f'Plasmids\n{featureCounts}\n')
-        print(f'{len(plasmid_features_df)} entries of {len(plasmid_features_df.columns)-1} features extracted')
+        _logToFilewithPrint(
+            f'{len(plasmid_features_df)} entries of {len(plasmid_features_df.columns)-1} features extracted')
 
         differences_df = pd.merge(plasmid_features_df[['id']], plasmid_labels_df[['id']], on='id', suffixes=('_features', '_labels'),
                                 how='outer', indicator='Exist')
@@ -72,7 +117,8 @@ def create_hdf5_datasets(directory, hdf5_path, plasmid_classes_csv, chromosome_c
             differences_df, on='id', how='inner')
         feature_only_count = len(
             plasmid_features_df[plasmid_features_df['Exist'] == 'left_only'])
-        print(f'{feature_only_count} feature entries does not have matching labels and omitted')
+        _logToFilewithPrint(
+            f'{feature_only_count} feature entries does not have matching labels and omitted')
         plasmid_features_df = plasmid_features_df[plasmid_features_df['Exist'] == 'both']
         plasmid_features_df = plasmid_features_df.drop('Exist', axis=1)
 
@@ -81,34 +127,57 @@ def create_hdf5_datasets(directory, hdf5_path, plasmid_classes_csv, chromosome_c
 
         label_only_count = len(
             plasmid_labels_duplicate_df[plasmid_labels_duplicate_df['Exist'] == 'right_only'])
-        print(f'{label_only_count} label entries does not have matching entries and omitted')
+        _logToFilewithPrint(
+            f'{label_only_count} label entries does not have matching entries and omitted')
         plasmid_labels_duplicate_df = plasmid_labels_duplicate_df[plasmid_labels_duplicate_df['Exist'] == 'both']
         plasmid_labels_duplicate_df = plasmid_labels_duplicate_df.drop('Exist', axis=1)
 
-        plasmid_classes_df = pd.read_csv(plasmid_classes_csv)
-        plasmid_labels_duplicate_df = plasmid_labels_duplicate_df.merge(
-            plasmid_classes_df[['Accession', 'Phylum']], how='left', left_on='seq_ID', right_on='Accession')
-        plasmid_labels_duplicate_df["label"] = plasmid_labels_duplicate_df.groupby(
-            ['Phylum'], sort=False).grouper.group_info[0]
-        print(f'{len(plasmid_labels_duplicate_df)} labels classified into {plasmid_labels_duplicate_df.label.nunique()} classes')
-
+        
         plasmid_classifed_df = pd.merge(
             plasmid_labels_duplicate_df, plasmid_features_df, on='id', how='outer')
 
-        # with h5py.File(hdf5_path, 'a') as hdf:
-        #     print('Writing Data....')
-        #     plasmid_features_df.apply(
-        #         lambda row: _write_data_to_h5(hdf, row), axis=1)
-        #     print('Writing Labels....')
-        #     plasmid_labels_duplicate_df.apply(
-        #         lambda row: _write_label_to_h5(hdf, row), axis=1)
-        
+        plasmid_features_df['id'] = plasmid_features_df['id'].astype(
+            str)+'_p'
+        plasmid_labels_duplicate_df['id'] = plasmid_labels_duplicate_df['id'].astype(
+            str) + '_p'
+
+        plasmid_features_df = plasmid_features_df.merge(plasmid_labels_duplicate_df[['id','type']],on='id',how='left')
+        plasmid_features_train_df = plasmid_features_df[
+            plasmid_features_df['type'] == 'Train']
+        plasmid_features_test_df = plasmid_features_df[plasmid_features_df['type'] == 'Test']
+        plasmid_labels_duplicate_train_df = plasmid_labels_duplicate_df[
+            plasmid_labels_duplicate_df['type'] == 'Train']
+        plasmid_labels_duplicate_test_df = plasmid_labels_duplicate_df[
+            plasmid_labels_duplicate_df['type'] == 'Test']
+
+        _logToFilewithPrint(f'Training plasmid count:{len(plasmid_features_train_df)}')
+        _logToFilewithPrint(
+            f'Testing plasmid count:{len(plasmid_features_test_df)}')
+
+        with h5py.File(training_hdf5_path, 'a') as hdf:
+            print('Writing Training Data....')
+            plasmid_features_train_df.apply(
+                lambda row: _write_data_to_h5(hdf, row), axis=1)
+            print('Writing Training Labels....')
+            plasmid_labels_duplicate_train_df.apply(
+                lambda row: _write_label_to_h5(hdf, row), axis=1)
+
+        with h5py.File(testing_hdf5_path, 'a') as hdf:
+            print('Writing Testing Data....')
+            plasmid_features_test_df.apply(
+                lambda row: _write_data_to_h5(hdf, row), axis=1)
+            print('Writing Testing Labels....')
+            plasmid_labels_duplicate_test_df.apply(
+                lambda row: _write_label_to_h5(hdf, row), axis=1)
+
         curr_plas_batches += len(iteration_batches)
-        print(f'\n{curr_plas_batches}/{plas_batches} PLASMID BATCHES COMPLETED')
+        _logToFilewithPrint(
+            f'\n{curr_plas_batches}/{plas_batches} PLASMID BATCHES COMPLETED')
     
 
     for i in range(0, len(batchFiles[1]), batches_per_iteration):
-        print(f'\n----ITERATION {int((i+batches_per_iteration)/batches_per_iteration)}----')
+        _logToFilewithPrint(
+            f'\n----ITERATION {int((i+batches_per_iteration)/batches_per_iteration)}----')
         print('\nExtracting Features....')
         if (curr_chrom_batches + batches_per_iteration > chrom_batches):
             iteration_batches = [m for m in range(i, i + (chrom_batches - curr_chrom_batches))]
@@ -116,14 +185,8 @@ def create_hdf5_datasets(directory, hdf5_path, plasmid_classes_csv, chromosome_c
             iteration_batches = [m for m in range(i, i+batches_per_iteration)]
         chromosome_features_df = _read_features(
             directory + "/chromosome/Data", iteration_batches)
-        _logToFile(f'Chromosomes\n{featureCounts}\n')
-        print(f'{len(chromosome_features_df)} entries of {len(chromosome_features_df.columns)-1} features extracted')
-
-        print('Generating Labels....')
-        chromosome_labels_df = pd.read_csv(
-            directory + '/chromosome/target.csv', names=['batch', 'id', 'seq_ID'])
-        chromosome_labels_df = chromosome_labels_df.drop_duplicates()
-        print(f'{len(chromosome_labels_df)} labels detected')
+        _logToFilewithPrint(
+            f'{len(chromosome_features_df)} entries of {len(chromosome_features_df.columns)-1} features extracted')
 
         differences_df = pd.merge(chromosome_features_df[['id']], chromosome_labels_df[['id']], on='id', suffixes=('_features', '_labels'),
                                     how='outer', indicator='Exist')
@@ -132,7 +195,7 @@ def create_hdf5_datasets(directory, hdf5_path, plasmid_classes_csv, chromosome_c
             differences_df, on='id', how='inner')
         feature_only_count = len(
             chromosome_features_df[chromosome_features_df['Exist'] == 'left_only'])
-        print(f'{feature_only_count} feature entries does not have matching labels and omitted')
+        _logToFilewithPrint(f'{feature_only_count} feature entries does not have matching labels and omitted')
         chromosome_features_df = chromosome_features_df[chromosome_features_df['Exist'] == 'both']
         chromosome_features_df = chromosome_features_df.drop('Exist', axis=1)
 
@@ -140,40 +203,52 @@ def create_hdf5_datasets(directory, hdf5_path, plasmid_classes_csv, chromosome_c
             differences_df, on='id', how='inner')
         label_only_count = len(
             chromosome_labels_duplicate_df[chromosome_labels_duplicate_df['Exist'] == 'right_only'])
-        print(f'{label_only_count} label entries does not have matching entries and omitted')
+        _logToFilewithPrint(
+            f'{label_only_count} label entries does not have matching entries and omitted')
         chromosome_labels_duplicate_df = chromosome_labels_duplicate_df[chromosome_labels_duplicate_df['Exist'] == 'both']
         chromosome_labels_duplicate_df = chromosome_labels_duplicate_df.drop('Exist', axis=1)
-
-        chromosome_classes_df = pd.read_csv(chromosome_classes_csv)
-        chromosome_labels_duplicate_df = chromosome_labels_duplicate_df.merge(
-            chromosome_classes_df[['Assembly_Accession', 'Phylum']], how='left', left_on='seq_ID', right_on='Assembly_Accession')
-        chromosome_labels_duplicate_df["label"] = chromosome_labels_duplicate_df.groupby(
-            ['Phylum'], sort=False).grouper.group_info[0]
-        print(f'{len(chromosome_labels_duplicate_df)} labels classified into {chromosome_labels_duplicate_df.label.nunique()} classes')
 
         chromosome_classifed_df = pd.merge(
             chromosome_labels_duplicate_df, chromosome_features_df, on='id', how='outer')
 
         chromosome_features_df['id'] = chromosome_features_df['id'].astype(str)+'_c'
-        chromosome_labels_duplicate_df['id'] = chromosome_labels_duplicate_df['id'].astype(str)+'_c'
+        chromosome_labels_duplicate_df['id'] = chromosome_labels_duplicate_df['id'].astype(str) + '_c'
+        
+        chromosome_features_df = chromosome_features_df.merge(chromosome_labels_duplicate_df[['id','type']],on='id',how='left')
+        chromosome_features_train_df = chromosome_features_df[chromosome_features_df['type'] == 'Train']
+        chromosome_features_test_df = chromosome_features_df[chromosome_features_df['type'] == 'Test']
+        chromosome_labels_duplicate_train_df = chromosome_labels_duplicate_df[
+            chromosome_labels_duplicate_df['type'] == 'Train']
+        chromosome_labels_duplicate_test_df = chromosome_labels_duplicate_df[chromosome_labels_duplicate_df['type'] == 'Test']
 
+        _logToFilewithPrint(f'Training chromosome count:{len(chromosome_features_train_df)}')
+        _logToFilewithPrint(
+            f'Testing chromosome count:{len(chromosome_features_test_df)}')
 
-        # with h5py.File(hdf5_path, 'a') as hdf:
-        #     print('Writing Data....')
-        #     chromosome_features_df.apply(
-        #         lambda row: _write_data_to_h5(hdf, row), axis=1)
-        #     print('Writing Labels....')
-        #     chromosome_labels_duplicate_df.apply(
-        #         lambda row: _write_label_to_h5(hdf, row), axis=1)
+        with h5py.File(training_hdf5_path, 'a') as hdf:
+            print('Writing Training Data....')
+            chromosome_features_train_df.apply(
+                lambda row: _write_data_to_h5(hdf, row), axis=1)
+            print('Writing Training Labels....')
+            chromosome_labels_duplicate_train_df.apply(
+                lambda row: _write_label_to_h5(hdf, row), axis=1)
+
+        with h5py.File(testing_hdf5_path, 'a') as hdf:
+            print('Writing Testing Data....')
+            chromosome_features_test_df.apply(
+                lambda row: _write_data_to_h5(hdf, row), axis=1)
+            print('Writing Testing Labels....')
+            chromosome_labels_duplicate_test_df.apply(
+                lambda row: _write_label_to_h5(hdf, row), axis=1)
 
         curr_chrom_batches += len(iteration_batches)
-        print(
+        _logToFilewithPrint(
             f'\n{curr_chrom_batches}/{chrom_batches} CHROMOSOME BATCHES COMPLETED')
 
 
 def _write_data_to_h5(h5_file, row):
     data_id = row['id']
-    data_array = row.drop('id').to_numpy(dtype=np.float)
+    data_array = row.drop('id').drop('type').to_numpy(dtype=np.float)
     group = h5_file.create_group(str(data_id))
     group.create_dataset('data', data=data_array)
 
@@ -191,7 +266,7 @@ def _write_label_to_h5(h5_file, row):
 
 
 def _checkFileStructure(directory, hdf5_path, plasmid_classes_csv, chromosome_classes_csv):
-    if (os.path.exists(hdf5_path)):
+    if (os.path.exists(hdf5_path+'training.h5') or os.path.exists(hdf5_path+'testing.h5')):
         print(f'{hdf5_path} already available. appending to it.')
     if (not (os.path.exists(plasmid_classes_csv) and os.path.exists(chromosome_classes_csv))):
         raise RuntimeError('required class CSVs not found')
@@ -268,4 +343,10 @@ def _read_feature_files(path, feature_names, selected_files_array):
 
 def _logToFile(msg):
     with open(logfile, 'a') as log:
-        log.write(msg)
+        log.write(msg+'\n')
+
+
+def _logToFilewithPrint(msg):
+    print(msg)
+    with open(logfile, 'a') as log:
+        log.write(msg+'\n')
