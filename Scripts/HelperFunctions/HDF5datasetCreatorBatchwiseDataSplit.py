@@ -80,7 +80,7 @@ def create_hdf5_datasets(directory, plasmid_classes_csv, chromosome_classes_csv,
 
     chromosome_classes_df = pd.read_csv(chromosome_classes_csv)
     chromosome_labels_df = chromosome_labels_df.merge(
-        chromosome_classes_df[['Assembly_Accession', 'Phylum']], how='left', left_on='seq_ID', right_on='Assembly_Accession')
+        chromosome_classes_df[['Assembly_Accession', 'Phylum']], how='left', left_on='dom_seq_ID', right_on='Assembly_Accession')
     chromosome_labels_df["label"] = chromosome_labels_df.groupby(
         ['Phylum'], sort=False).grouper.group_info[0]
 
@@ -93,7 +93,7 @@ def create_hdf5_datasets(directory, plasmid_classes_csv, chromosome_classes_csv,
         chromosome_labels_df['label']).sample(frac=test_fraction)
     temp_df['type'] = 'Test'
     chromosome_labels_df = chromosome_labels_df.merge(
-        temp_df, how="outer", on=['batch', 'id', 'seq_ID', 'Assembly_Accession', 'Phylum', 'label']).fillna("Train")
+        temp_df, how="outer", on=['batch', 'id', 'seq_ID', 'Assembly_Accession', 'Phylum', 'label', 'dom_seq_ID']).fillna("Train")
 
     print(chromosome_labels_df['label'].value_counts())
     chromosome_labels_df.to_csv(hdf5_path+'final_chromosome_labels.csv')
@@ -192,7 +192,6 @@ def create_hdf5_datasets(directory, plasmid_classes_csv, chromosome_classes_csv,
         _logToFilewithPrint(
             f'{len(chromosome_features_df)} entries of {len(chromosome_features_df.columns)-1} features extracted')
 
-        print(chromosome_labels_df)
         differences_df = pd.merge(chromosome_features_df[['id']], chromosome_labels_df[['id']], on='id', suffixes=('_features', '_labels'),
                                     how='outer', indicator='Exist')
 
