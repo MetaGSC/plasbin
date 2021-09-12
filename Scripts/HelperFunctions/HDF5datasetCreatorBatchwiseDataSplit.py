@@ -28,6 +28,8 @@ def create_hdf5_datasets(directory, plasmid_classes_csv, chromosome_classes_csv,
     print('\n======= HDF5 dataset Creator ========\n')
     if (hdf5_path == None):
         hdf5_path = directory + '/'
+    else:
+        hdf5_path = hdf5_path + '/'
     training_hdf5_path = hdf5_path+'training.h5'
     testing_hdf5_path = hdf5_path+'testing.h5'
 
@@ -155,6 +157,7 @@ def create_hdf5_datasets(directory, plasmid_classes_csv, chromosome_classes_csv,
             f'Testing plasmid count:{len(plasmid_features_test_df)}')
 
         with h5py.File(training_hdf5_path, 'a') as hdf:
+            _logToFilewithPrint(f'Training.h5 created at {training_hdf5_path}')
             print('Writing Training Data....')
             plasmid_features_train_df.apply(
                 lambda row: _write_data_to_h5(hdf, row), axis=1)
@@ -163,6 +166,7 @@ def create_hdf5_datasets(directory, plasmid_classes_csv, chromosome_classes_csv,
                 lambda row: _write_label_to_h5(hdf, row), axis=1)
 
         with h5py.File(testing_hdf5_path, 'a') as hdf:
+            _logToFilewithPrint(f'Testing.h5 created at {testing_hdf5_path}')
             print('Writing Testing Data....')
             plasmid_features_test_df.apply(
                 lambda row: _write_data_to_h5(hdf, row), axis=1)
