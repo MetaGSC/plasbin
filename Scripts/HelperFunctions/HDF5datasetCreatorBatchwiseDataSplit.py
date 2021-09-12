@@ -71,7 +71,7 @@ def create_hdf5_datasets(directory, plasmid_classes_csv, chromosome_classes_csv,
 
     print('Surveying Chromosome Info....')
     chromosome_labels_df = pd.read_csv(
-        directory + '/chromosome/target.csv', names=['batch', 'id', 'seq_ID'])
+        directory + '/chromosome/target.csv', names=['batch', 'id', 'seq_ID','dom_seq_ID'])
     chromosome_labels_df = chromosome_labels_df.drop_duplicates()
     _logToFilewithPrint(
         f'{len(chromosome_labels_df)} chromosome labels detected')
@@ -188,6 +188,7 @@ def create_hdf5_datasets(directory, plasmid_classes_csv, chromosome_classes_csv,
         _logToFilewithPrint(
             f'{len(chromosome_features_df)} entries of {len(chromosome_features_df.columns)-1} features extracted')
 
+        print(chromosome_labels_df)
         differences_df = pd.merge(chromosome_features_df[['id']], chromosome_labels_df[['id']], on='id', suffixes=('_features', '_labels'),
                                     how='outer', indicator='Exist')
 
