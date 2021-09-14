@@ -15,7 +15,6 @@ import argparse
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-# from Bio import SeqIO
 from datetime import datetime
 from numpy.random import randint
 import torch
@@ -24,13 +23,10 @@ from torch.utils.data import random_split
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data.dataloader import DataLoader
-
 import matplotlib
 import matplotlib.pyplot as plt
-
-# Add Cuda availability
-
-print(f'torch vesrion:{torch.__version__}  cuda availability:{torch.cuda.is_available()} with {torch.cuda.device_count()} GPU devices')
+from HDF5dataset import HDF5Dataset
+from WeightsCreator import make_weights_for_balanced_classes
 
 def get_default_device():
     """Pick GPU if available, else CPU"""
@@ -44,73 +40,6 @@ def to_device(data, device):
     if isinstance(data, (list,tuple)):
         return [to_device(x, device) for x in data]
     return data.to(device, non_blocking=True)
-
-class DeviceDataLoader(DataLoader):
-    """Wrap a dataloader to move data to a device"""
-    def __init__(self, dl, device, batchSize, *args, **kwargs):
-        super(DeviceDataLoader, self).__init__(dl, batchSize, *args, **kwargs)
-        self.dl = dl
-        self.device = device
-        # for b in self.dl: 
-        #   yield to_device(b, self.device)
-        
-    def __iter__(self):
-        """Yield a batch of data after moving it to device"""
-        # super(DeviceDataLoader, self).__iter__()
-        for b in self.dl: 
-            yield to_device(b, self.device)
-
-    def __len__(self):
-        """Number of batches"""
-        return len(self.dl)
-
-device = get_default_device()
-print(f'{device} set as the default device')
-
-k = 7
-global cat
-cat = pd.DataFrame(columns=['label'])
-
-from HDF5dataset import HDF5Dataset
-from WeightsCreator import make_weights_for_balanced_classes
-
-inputFeatures = int((4**k) / 2) + 15
-# inputFeatures = 2
-layer_array = [512, 512, 256, 256]
-outputSize = 2
-momentum = 0.4
-dropoutProb = 0.5
-batchSize = 200
-num_epochs = 5
-opt_func = torch.optim.Adam
-lr = 0.001
-num_workers = 2
-
-print('Importing the dataset....')
-
-trainingDataset = HDF5Dataset('/home/chamikanandasiri/plasbin/h5_files/training.h5', False, data_cache_size=400000,label_threshold=6)
-testingDataset = HDF5Dataset('/home/chamikanandasiri/plasbin/h5_files/testing.h5', True, data_cache_size=1000,label_threshold=6)
-datasetsize = len(trainingDataset)
-
-train_size = int(0.8 * len(trainingDataset))
-val_size = len(trainingDataset) - train_size
-
-print('\nSplitting Training/Validation datasets....')
-train_ds, val_ds = random_split(trainingDataset, [train_size, val_size])
-print('==== Dataset processed ====')
-
-ind = torch.tensor(train_ds.indices)
-tens = train_ds.dataset.get_label_values(ind)
-
-weights = make_weights_for_balanced_classes(outputSize, tens)
-sampler = torch.utils.data.sampler.WeightedRandomSampler(weights, train_size)
-
-train_dl = DataLoader(train_ds, batchSize, shuffle=False, num_workers=num_workers, pin_memory=True, sampler=sampler)
-val_dl = DataLoader(val_ds, batchSize, num_workers=num_workers, pin_memory=True)
-
-#=================================================================================================
-# train_dl = DataLoader(train_ds, batchSize, shuffle=True, num_workers=num_workers, pin_memory=True)
-# val_dl = DataLoader(val_ds, batchSize, num_workers=num_workers, pin_memory=True)
 
 @torch.no_grad()
 def evaluate(model, val_loader):
@@ -183,14 +112,7 @@ class Model(nn.Module):
         return softmax(self.network(xb))
 
     def training_step(self, batch):
-        values, labels = batch 
-
-# ---------------------------------------
-        global cat
-        cat = cat.append(pd.DataFrame(labels,columns=['label']),ignore_index = True)
-# ---------------------------------------
-
-
+        values, labels = batch
         values = values.to(device)
         labels = labels.to(device)
         out = self(values)                  # Generate predictions
@@ -216,41 +138,64 @@ class Model(nn.Module):
     def epoch_end(self, epoch, result):
         print("Epoch [{}], val_loss: {:.4f}, val_acc: {:.4f}".format(epoch, result['val_loss'], result['val_acc']))
 
-# def predict(value, model):
-#   xb = value
-#   # //:TODO Check torch.stack
-#   # xb = torch.stack(value)
-#   yb = model(xb)
-#   _, preds  = torch.max(yb, dim=0)
-#   return preds
+	def predict(value, model):
+		# Convert to a batch of 1
+		xb = to_device(value, device)
+		# Get predictions from model
+		yb = model(xb)
+		# print(yb)
+		# Pick index with highest probability   
+		_, preds  = torch.max(yb, dim=0)
+		# print(torch.max(yb, dim=0)[1])
+		# Retrieve the class label
+		return preds.item()
 
-def predict(value, model):
-    # Convert to a batch of 1
-    xb = to_device(value, device)
-    # Get predictions from model
-    yb = model(xb)
-    # print(yb)
-    # Pick index with highest probability   
-    _, preds  = torch.max(yb, dim=0)
-    # print(torch.max(yb, dim=0)[1])
-    # Retrieve the class label
-    return preds.item()
+	
+
+# Add Cuda availability
+print('\n======Model 0.5.0=======\n')
+print(f'torch vesrion:{torch.__version__}  cuda availability:{torch.cuda.is_available()} with {torch.cuda.device_count()} GPU devices')
+device = get_default_device()
+print(f'{device} set as the default device')
+
+k = 7
+inputFeatures = int((4**k) / 2) + 15
+layer_array = [512, 512, 256, 256]
+outputSize = 2
+momentum = 0.4
+dropoutProb = 0.2
+batchSize = 200
+num_epochs = 10
+opt_func = torch.optim.Adam
+lr = 0.001
+num_workers = 10
+
+print('Importing the dataset....')
+#trainingDataset = HDF5Dataset('/home/chamikanandasiri/plasbin/h5_files/training.h5', False, data_cache_size=400000,label_threshold=6)
+trainingDataset = HDF5Dataset('/home/chamikanandasiri/plasbin/h5_files/testing.h5', True, data_cache_size=1000,label_threshold=6)
+datasetsize = len(trainingDataset)
+
+train_size = int(0.8 * len(trainingDataset))
+val_size = len(trainingDataset) - train_size
+
+print('\nSplitting Training/Validation datasets....')
+train_ds, val_ds = random_split(trainingDataset, [train_size, val_size])
+print('==== Dataset processed ====')
+
+train_dl = DataLoader(train_ds, batchSize, shuffle=True, num_workers=num_workers, pin_memory=True)
+val_dl = DataLoader(val_ds, batchSize, num_workers=num_workers, shuffle =True, pin_memory=True)
 
 model = Model(inputFeatures, layer_array, outputSize)
 model = to_device(model, device)
-model
 
 model.double()
 history = fit(num_epochs, lr, model, train_dl, val_dl, opt_func)
-
-"""0:01:40.396880\
-0:02:31.303028
-"""
 
 plot_accuracies(history)
 
 plot_losses(history)
 
+'''
 test_dl = DataLoader(testingDataset, batchSize, num_workers=4, pin_memory=True)
 
 cor = []
@@ -271,4 +216,5 @@ print(f'correct:{len(correct_df['prediction'].value_counts())}')
 print(f'incorrect:{len(incorrect_df['prediction'].value_counts())}')
 
 incorrect_df.to_csv('incorrect.csv')
-correct_df.to_csv('correct.csv')
+correct_df.to_csv('correct.csv
+'''
