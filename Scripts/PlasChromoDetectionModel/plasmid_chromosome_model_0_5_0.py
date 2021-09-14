@@ -138,17 +138,11 @@ class Model(nn.Module):
     def epoch_end(self, epoch, result):
         print("Epoch [{}], val_loss: {:.4f}, val_acc: {:.4f}".format(epoch, result['val_loss'], result['val_acc']))
 
-	def predict(value, model):
-		# Convert to a batch of 1
-		xb = to_device(value, device)
-		# Get predictions from model
-		yb = model(xb)
-		# print(yb)
-		# Pick index with highest probability   
-		_, preds  = torch.max(yb, dim=0)
-		# print(torch.max(yb, dim=0)[1])
-		# Retrieve the class label
-		return preds.item()
+    def predict(value, model):
+        xb = to_device(value, device)
+        yb = model(xb)  
+        _, preds  = torch.max(yb, dim=0)
+        return preds.item()
 
 	
 
@@ -171,8 +165,8 @@ lr = 0.001
 num_workers = 10
 
 print('Importing the dataset....')
-#trainingDataset = HDF5Dataset('/home/chamikanandasiri/plasbin/h5_files/training.h5', False, data_cache_size=400000,label_threshold=6)
-trainingDataset = HDF5Dataset('/home/chamikanandasiri/plasbin/h5_files/testing.h5', True, data_cache_size=1000,label_threshold=6)
+#trainingDataset = HDF5Dataset('/home/anuvini/Documents/FYPML/Plasbin_datasets/training.h5', False, data_cache_size=400000,label_threshold=6)
+trainingDataset = HDF5Dataset('/home/anuvini/Documents/FYPML/Plasbin_datasets/testing.h5', True, data_cache_size=1000,label_threshold=6)
 datasetsize = len(trainingDataset)
 
 train_size = int(0.8 * len(trainingDataset))
