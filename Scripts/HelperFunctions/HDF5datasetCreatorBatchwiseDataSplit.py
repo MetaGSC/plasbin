@@ -59,7 +59,7 @@ def create_hdf5_datasets(directory, plasmid_classes_csv, chromosome_classes_csv,
         directory + '/plasmid/target.csv', names=['batch', 'id', 'seq_ID'])
     plasmid_labels_df = plasmid_labels_df.drop_duplicates()
     if (plas_limit == len(batchFiles[0])):
-        plasmid_labels_df = plasmid_labels_df.head(plas_limit*1000)
+        plasmid_labels_df = plasmid_labels_df.head(plas_limit*10000)
     _logToFilewithPrint(f'{len(plasmid_labels_df)} plasmid labels detected')
 
     plasmid_classes_df = pd.read_csv(plasmid_classes_csv)
@@ -85,7 +85,7 @@ def create_hdf5_datasets(directory, plasmid_classes_csv, chromosome_classes_csv,
         directory + '/chromosome/target.csv', names=['batch', 'id', 'seq_ID','dom_seq_ID'])
     chromosome_labels_df = chromosome_labels_df.drop_duplicates()
     if (chrom_limit == len(batchFiles[1])):
-        chromosome_labels_df = chromosome_labels_df.head(chrom_limit*1000)
+        chromosome_labels_df = chromosome_labels_df.head(chrom_limit*10000)
     _logToFilewithPrint(
         f'{len(chromosome_labels_df)} chromosome labels detected')
 
