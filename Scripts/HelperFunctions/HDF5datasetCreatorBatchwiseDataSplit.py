@@ -20,10 +20,14 @@ featureCounts = {}
 batchFiles = []
 
 
-def create_hdf5_datasets(directory, plasmid_classes_csv, chromosome_classes_csv, hdf5_path=None, test_fraction = 0.2, batches_per_iteration=1):
+def create_hdf5_datasets(directory, plasmid_classes_csv, chromosome_classes_csv, hdf5_path=None, test_fraction = 0.2, batches_per_iteration=1,plasmid_batch_limit = None, chromosome_batch_limit =None):
     global logfile
     plasmid_class_count = 0
     chromosome_class_count = 0
+    plas_limit = plasmid_batch_limit
+    chrom_limit = chromosome_batch_limit
+    curr_plas_batches = 0
+    curr_chrom_batches = 0
     
     print('\n======= HDF5 dataset Creator ========\n')
     if (hdf5_path == None):
@@ -40,17 +44,22 @@ def create_hdf5_datasets(directory, plasmid_classes_csv, chromosome_classes_csv,
     _checkFileStructure(directory, hdf5_path,
                         plasmid_classes_csv, chromosome_classes_csv)
     _logToFilewithPrint('Directory is in the standard format')
-    plas_batches = (len(batchFiles[0]))
-    chrom_batches = (len(batchFiles[1]))
-    curr_plas_batches = 0
-    curr_chrom_batches = 0
+    if(plas_limit == None):
+        plas_limit = len(batchFiles[0])
+    if (chrom_limit == None):
+        chrom_limit = len(batchFiles[1])
     _logToFilewithPrint(
         f'{len(batchFiles[0])} batches of plasmids and {len(batchFiles[1])} batches of chromosomes found')
+    if(plas_limit != len(batchFiles[0]) or chrom_limit != len(batchFiles[1])):
+        _logToFilewithPrint(
+            f'{plas_limit} batches of plasmids and {chrom_limit} batches of chromosomes will be used')
 
     print('Surveying Plasmid Info....')
     plasmid_labels_df = pd.read_csv(
         directory + '/plasmid/target.csv', names=['batch', 'id', 'seq_ID'])
     plasmid_labels_df = plasmid_labels_df.drop_duplicates()
+    if (plas_limit == len(batchFiles[0])):
+        plasmid_labels_df = plasmid_labels_df.head(plas_limit*1000)
     _logToFilewithPrint(f'{len(plasmid_labels_df)} plasmid labels detected')
 
     plasmid_classes_df = pd.read_csv(plasmid_classes_csv)
@@ -75,6 +84,8 @@ def create_hdf5_datasets(directory, plasmid_classes_csv, chromosome_classes_csv,
     chromosome_labels_df = pd.read_csv(
         directory + '/chromosome/target.csv', names=['batch', 'id', 'seq_ID','dom_seq_ID'])
     chromosome_labels_df = chromosome_labels_df.drop_duplicates()
+    if (chrom_limit == len(batchFiles[1])):
+        chromosome_labels_df = chromosome_labels_df.head(chrom_limit*1000)
     _logToFilewithPrint(
         f'{len(chromosome_labels_df)} chromosome labels detected')
 
@@ -96,16 +107,16 @@ def create_hdf5_datasets(directory, plasmid_classes_csv, chromosome_classes_csv,
         temp_df, how="outer", on=['batch', 'id', 'seq_ID', 'Assembly_Accession', 'Phylum', 'label', 'dom_seq_ID']).fillna("Train")
 
     print(chromosome_labels_df['label'].value_counts())
-    chromosome_labels_df.to_csv(hdf5_path+'final_chromosome_labels.csv')
-
+    chromosome_labels_df.to_csv(hdf5_path + 'final_chromosome_labels.csv')
     
-    for i in range(0, len(batchFiles[0]), batches_per_iteration):
+       
+    for i in range(0, plas_limit, batches_per_iteration):
         _logToFilewithPrint(
             f'\n----ITERATION {int((i+batches_per_iteration)/batches_per_iteration)}----')
         print('\nExtracting Features....')
-        if (curr_plas_batches + batches_per_iteration > plas_batches):
+        if (curr_plas_batches + batches_per_iteration > plas_limit):
             iteration_batches = [m for m in range(
-                i, i + (plas_batches - curr_plas_batches))]
+                i, i + (plas_limit - curr_plas_batches))]
         else:
             iteration_batches = [m for m in range(i, i+batches_per_iteration)]
         plasmid_features_df = _read_features(directory + "/plasmid/Data",iteration_batches)
@@ -176,15 +187,15 @@ def create_hdf5_datasets(directory, plasmid_classes_csv, chromosome_classes_csv,
 
         curr_plas_batches += len(iteration_batches)
         _logToFilewithPrint(
-            f'\n{curr_plas_batches}/{plas_batches} PLASMID BATCHES COMPLETED')
+            f'\n{curr_plas_batches}/{plas_limit} PLASMID BATCHES COMPLETED')
     
 
-    for i in range(0, len(batchFiles[1]), batches_per_iteration):
+    for i in range(0, chrom_limit, batches_per_iteration):
         _logToFilewithPrint(
             f'\n----ITERATION {int((i+batches_per_iteration)/batches_per_iteration)}----')
         print('\nExtracting Features....')
-        if (curr_chrom_batches + batches_per_iteration > chrom_batches):
-            iteration_batches = [m for m in range(i, i + (chrom_batches - curr_chrom_batches))]
+        if (curr_chrom_batches + batches_per_iteration > chrom_limit):
+            iteration_batches = [m for m in range(i, i + (chrom_limit - curr_chrom_batches))]
         else:
             iteration_batches = [m for m in range(i, i+batches_per_iteration)]
         chromosome_features_df = _read_features(
@@ -247,7 +258,7 @@ def create_hdf5_datasets(directory, plasmid_classes_csv, chromosome_classes_csv,
 
         curr_chrom_batches += len(iteration_batches)
         _logToFilewithPrint(
-            f'\n{curr_chrom_batches}/{chrom_batches} CHROMOSOME BATCHES COMPLETED')
+            f'\n{curr_chrom_batches}/{chrom_limit} CHROMOSOME BATCHES COMPLETED')
 
 
 def _write_data_to_h5(h5_file, row):
