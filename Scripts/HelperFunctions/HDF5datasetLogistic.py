@@ -10,7 +10,7 @@ from datetime import datetime
 
 
 class HDF5DatasetLogistic(data.Dataset):
-    def __init__(self, file_path, load_data, plas_csv, chromo_csv, plas_group, chromo_group, data_cache_size=3, plas_chro_labeling=True, label_threshold=None):
+    def __init__(self, file_path, load_data, plas_group, chromo_group, data_cache_size=3, plas_chro_labeling=True, label_threshold=None):
         super().__init__()
         self.data_info = []
         self.label_info = []
@@ -22,8 +22,8 @@ class HDF5DatasetLogistic(data.Dataset):
         self.data_cache_size = data_cache_size
         self.plasmid_group = plas_group
         self.chromosome_group = chromo_group
-        self.chromosome_df = pd.read_csv(chromo_csv)
-        self.plasmid_df = pd.read_csv(plas_csv)
+        self.chromosome_df = pd.read_csv(file_path+'/grouped_chromosome_labels.csv')
+        self.plasmid_df = pd.read_csv(file_path+'/grouped_plasmid_labels.csv')
         self._add_data_infos(load_data, self.training_filepath)
         self._add_data_infos(load_data, self.testing_filepath)
         self.df_label_info = pd.DataFrame(self.label_info)
