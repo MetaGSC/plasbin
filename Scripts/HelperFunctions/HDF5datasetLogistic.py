@@ -22,24 +22,29 @@ class HDF5DatasetLogistic(data.Dataset):
         self.data_cache_size = data_cache_size
         self.plasmid_group = plas_group
         self.chromosome_group = chromo_group
-        self.chromosome_df = pd.read_csv(file_path+'/grouped_chromosome_labels.csv')
-        self.plasmid_df = pd.read_csv(file_path+'/grouped_plasmid_labels.csv')
+        self.chromosome_df = pd.read_csv(file_path+'/final_chromosome_labels.csv')
+        self.plasmid_df = pd.read_csv(file_path+'/final_plasmid_labels.csv')
         self._add_data_infos(load_data, self.training_filepath)
         self._add_data_infos(load_data, self.testing_filepath)
         self.df_label_info = pd.DataFrame(self.label_info)
 
     def __getitem__(self, index):
-        x = self.get_data("data", index)
+        x, fidx = self.get_data("data", index)
         x = torch.from_numpy(x)
 
-        y = self.get_data("label", index)
+        y, fidy = self.get_data("label", index)
         y = torch.tensor(y[0])
         if (self.plas_chro_labeling):
             if (y.item() > self.label_threshold):
                 y = torch.tensor(1)
             else:
                 y = torch.tensor(0)
-        return (x, y)
+
+        fid = "wrong"
+        if(fidx == fidy):
+            fid = fidx
+
+        return (x, y, fid)
 
     def __len__(self):
         return len(self.get_data_infos('data'))
@@ -131,7 +136,7 @@ class HDF5DatasetLogistic(data.Dataset):
 
         # get new cache_idx assigned by _load_data_info
         cache_idx = self.get_data_infos(type)[i]['cache_idx']
-        return self.data_cache[fid][cache_idx]
+        return self.data_cache[fid][cache_idx], fid
 
     def get_label_values(self, indices):
         t = datetime.now()

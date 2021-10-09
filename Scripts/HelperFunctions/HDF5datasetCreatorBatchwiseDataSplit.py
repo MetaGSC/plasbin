@@ -77,7 +77,20 @@ def create_hdf5_datasets(directory, plasmid_classes_csv, chromosome_classes_csv,
     temp_df['type'] = 'Test'
     plasmid_labels_df = plasmid_labels_df.merge(temp_df, how="outer", on=['batch', 'id', 'seq_ID', 'Accession', 'Phylum', 'label']).fillna("Train")
 
+    temp_df1 = plasmid_labels_df.sample(frac=0.3333)
+    temp_df1['group'] = 'G1'
+    plasmid_labels_df = plasmid_labels_df.merge(temp_df1, how="left", on=[
+                                                'batch', 'id', 'seq_ID', 'Accession', 'Phylum', 'label', 'type'])
+    temp_df2 = plasmid_labels_df[plasmid_labels_df['group'].isna()].sample(frac=0.5)
+    temp_df2['group'] = 'G2'
+    plasmid_labels_df = plasmid_labels_df.merge(temp_df2, how="left", on=[
+        'batch', 'id', 'seq_ID', 'Accession', 'Phylum', 'label', 'type'])
+    plasmid_labels_df['group'] = plasmid_labels_df['group_x'].fillna(
+        plasmid_labels_df['group_y']).fillna('G3')
+    plasmid_labels_df.drop(['group_x','group_y'],inplace=True,axis=1)
+    
     print(plasmid_labels_df['label'].value_counts())
+    print(plasmid_labels_df['group'].value_counts())
     plasmid_labels_df.to_csv(hdf5_path+'final_plasmid_labels.csv')
 
     print('Surveying Chromosome Info....')
@@ -106,7 +119,21 @@ def create_hdf5_datasets(directory, plasmid_classes_csv, chromosome_classes_csv,
     chromosome_labels_df = chromosome_labels_df.merge(
         temp_df, how="outer", on=['batch', 'id', 'seq_ID', 'Assembly_Accession', 'Phylum', 'label', 'dom_seq_ID']).fillna("Train")
 
+    temp_df1 = chromosome_labels_df.sample(frac=0.333333)
+    temp_df1['group'] = 'G1'
+    chromosome_labels_df = chromosome_labels_df.merge(temp_df1, how="left", on=[
+        'batch', 'id', 'seq_ID','dom_seq_ID', 'Assembly_Accession', 'Phylum', 'label', 'type'])
+    temp_df2 = chromosome_labels_df[chromosome_labels_df['group'].isna()].sample(
+        frac=0.5)
+    temp_df2['group'] = 'G2'
+    chromosome_labels_df = chromosome_labels_df.merge(temp_df2, how="left", on=[
+        'batch', 'id', 'seq_ID', 'dom_seq_ID', 'Assembly_Accession', 'Phylum', 'label', 'type'])
+    chromosome_labels_df['group'] = chromosome_labels_df['group_x'].fillna(
+        chromosome_labels_df['group_y']).fillna('G3')
+    chromosome_labels_df.drop(['group_x', 'group_y'], inplace=True, axis=1)
+    
     print(chromosome_labels_df['label'].value_counts())
+    print(chromosome_labels_df['group'].value_counts())
     chromosome_labels_df.to_csv(hdf5_path + 'final_chromosome_labels.csv')
     
        
