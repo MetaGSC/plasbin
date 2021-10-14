@@ -181,6 +181,9 @@ def create_hdf5_datasets(directory, plasmid_classes_csv, chromosome_classes_csv,
         plasmid_labels_duplicate_df['id'] = plasmid_labels_duplicate_df['id'].astype(
             str) + '_p'
 
+        print(plasmid_features_df.astype(bool).sum(axis=0))
+
+
         plasmid_features_df = plasmid_features_df.merge(plasmid_labels_duplicate_df[['id','type']],on='id',how='left')
         plasmid_features_train_df = plasmid_features_df[
             plasmid_features_df['type'] == 'Train']
@@ -256,6 +259,8 @@ def create_hdf5_datasets(directory, plasmid_classes_csv, chromosome_classes_csv,
         chromosome_features_df['id'] = chromosome_features_df['id'].astype(str)+'_c'
         chromosome_labels_duplicate_df['id'] = chromosome_labels_duplicate_df['id'].astype(str) + '_c'
         
+        print(chromosome_features_df.astype(bool).sum(axis=0))
+
         chromosome_features_df = chromosome_features_df.merge(chromosome_labels_duplicate_df[['id','type']],on='id',how='left')
         chromosome_features_train_df = chromosome_features_df[chromosome_features_df['type'] == 'Train']
         chromosome_features_test_df = chromosome_features_df[chromosome_features_df['type'] == 'Test']
@@ -370,6 +375,7 @@ def _read_features(path, selected_files_array):
     kmer_df = _read_feature_files(
         path + '/7mers', ['7mer-' + str(j) for j in range(8192)], selected_files_array)
     feature_df = feature_df.merge(kmer_df,left_index=True,right_index=True)
+    feature_df['id'] = feature_df['id'].astype(np.int32)
     featureCounts['7mers'] = len(kmer_df)
     return feature_df
 
@@ -377,7 +383,7 @@ def _read_features(path, selected_files_array):
 def _read_feature_files(path, feature_names, selected_files_array):
     fileArrays = []
     for file in tqdm(selected_files_array):
-        fileArrays.append(np.genfromtxt(path+"/"+str(file), dtype=np.int32))
+        fileArrays.append(np.genfromtxt(path+"/"+str(file), dtype=np.float64))
     featureArray = np.concatenate(fileArrays)
     feature_df = pd.DataFrame(featureArray, columns=feature_names)
     return feature_df
