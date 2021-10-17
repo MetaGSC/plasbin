@@ -3,8 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-Testing/
-Results/
+JUNK/
 Others/
 Other notebooks/
 Chromosome_data.csv
