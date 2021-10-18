@@ -10,75 +10,64 @@ from datetime import datetime
 
 
 class HDF5Dataset(data.Dataset):
-    def __init__(self, file_path, load_data, data_cache_size=3, plas_chro_labeling=True, label_threshold = None):
+    def __init__(self, file_path, isTraining,data_cache_size=3, plas_chro_labeling=True, label_threshold=20):
         super().__init__()
-        self.data_info = []
-        self.label_info = []
+        if (isTraining):
+            self.data_info = pd.read_csv(
+                file_path+'/h5_data_infos/training_data_info.csv')
+            self.label_info = pd.read_csv(
+                file_path + '/h5_data_infos/training_label_info.csv')
+        else:
+            self.data_info = pd.read_csv(
+                file_path+'/h5_data_infos/testing_data_info.csv')
+            self.label_info = pd.read_csv(
+                file_path + '/h5_data_infos/testing_label_info.csv')
+            
         self.data_cache = {}
-        self.h5_filepath = file_path
         self.plas_chro_labeling = plas_chro_labeling
         self.label_threshold = label_threshold
         self.data_cache_size = data_cache_size
-        self._add_data_infos(load_data)
-        self.df_label_info = pd.DataFrame(self.label_info)
 
     def __getitem__(self, index):
-        x = self.get_data("data", index)
+        x, fidx = self.get_data("data", index)
         x = torch.from_numpy(x)
 
-        y = self.get_data("label", index)
+        y, fidy = self.get_data("label", index)
         y = torch.tensor(y[0])
         if (self.plas_chro_labeling):
             if (y.item() > self.label_threshold):
-                y = torch.tensor(1)
-            else:
                 y = torch.tensor(0)
-        return (x, y)
+            else:
+                y = torch.tensor(1)
+
+        fid = "wrong"
+        if(fidx == fidy):
+            fid = fidx
+
+        return (x, y, fid)
 
     def __len__(self):
         return len(self.get_data_infos('data'))
 
-    def _add_data_infos(self, load_data):
-        with h5py.File(self.h5_filepath) as h5_file:
-            for gname, group in tqdm(h5_file.items()):
-                for dname, ds in group.items():
-                    # if data is not loaded its cache index is -1
-                    idx = -1
-                    if load_data:
-                        # add data to the data cache
-                        idx = self._add_to_cache(ds[()], gname)
+    
+    def _load_data(self, fid, fpath, findex):
 
-                    if (dname == 'label'):
-                        val = ds[0]
-                        self.data_info.append({'file_id': gname, 'value': val, 'type': dname, 'shape': ds.shape, 'cache_idx': idx})
-                        self.label_info.append(
-                            {'file_id': gname, 'value': val})
-                    else:
-                        self.data_info.append({'file_id':gname, 'value':'DATA', 'type': dname, 'shape': ds.shape, 'cache_idx': idx})
-
-    def _load_data(self, fid):
-
-        with h5py.File(self.h5_filepath) as h5_file:
+        with h5py.File(fpath) as h5_file:
             group = h5_file[fid]
             for dname, ds in group.items():
                 idx = self._add_to_cache(ds[()], fid)
 
-                # find the beginning index of the hdf5 file we are looking for
-                file_idx = next(i for i, v in enumerate(
-                    self.data_info) if v['file_id'] == fid)
+                self.data_info.at[findex, 'cache_idx'] = idx
+                self.data_info.at[findex+1, 'cache_idx'] = idx+1
 
-                # the data info should have the same index since we loaded it in the same way
-                self.data_info[file_idx + idx]['cache_idx'] = idx
 
         # remove an element from data cache if size was exceeded
         if len(self.data_cache) > self.data_cache_size:
             # remove one item from the cache at random
-            removal_keys = list(self.data_cache)
-            removal_keys.remove(fid)
-            self.data_cache.pop(removal_keys[0])
+            removal_key = list(self.data_cache.keys())[0]
+            self.data_cache.pop(removal_key)
             # remove invalid cache_idx
-            self.data_info = [{'file_id': di['file_id'],'value':di['value'], 'type': di['type'], 'shape': di['shape'],
-                               'cache_idx': -1} if di['file_id'] == removal_keys[0] else di for di in self.data_info]
+            self.data_info.loc[self.data_info['file_id'] == removal_key, 'cache_idx'] = -1
 
     def _add_to_cache(self, data, data_id):
 
@@ -86,22 +75,26 @@ class HDF5Dataset(data.Dataset):
             self.data_cache[data_id] = [data]
         else:
             self.data_cache[data_id].append(data)
-        return len(self.data_cache[data_id]) - 1
+        return 0
 
     def get_data_infos(self, type):
 
-        data_info_type = [di for di in self.data_info if di['type'] == type]
+        data_info_type = self.data_info.loc[self.data_info['type'] == type]
         return data_info_type
 
     def get_data(self, type, i):
 
-        fid = self.get_data_infos(type)[i]['file_id']
+        temp = self.get_data_infos(type).iloc[[i]]
+        fid = str(temp['file_id'].item())
+        fpath = str(temp['file'].item())
+        findex = int(temp.index.item())
+
         if fid not in self.data_cache:
-            self._load_data(fid)
+            self._load_data(fid, fpath, findex)
 
         # get new cache_idx assigned by _load_data_info
-        cache_idx = self.get_data_infos(type)[i]['cache_idx']
-        return self.data_cache[fid][cache_idx]
+        cache_idx = int(self.get_data_infos(type).iloc[[i]]['cache_idx'].item())
+        return self.data_cache[fid][cache_idx], fid
 
     def get_label_values(self, indices):
         t = datetime.now()
