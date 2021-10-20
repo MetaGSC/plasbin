@@ -20,8 +20,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 
-from HDF5dataset import HDF5Dataset
-from WeightsCreator import make_weights_for_balanced_classes
+from Scripts.TrainingComponents.HDF5dataset import HDF5Dataset
+from Scripts.TrainingComponents.WeightsCreator import make_weights_for_balanced_classes
 
 
 # Add Cuda availability
