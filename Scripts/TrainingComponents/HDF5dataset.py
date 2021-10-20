@@ -10,7 +10,7 @@ from datetime import datetime
 
 
 class HDF5Dataset(data.Dataset):
-    def __init__(self, file_path, isTraining,data_cache_size=3, plas_chro_labeling=True, label_threshold=20):
+    def __init__(self, file_path, isTraining, data_cache_size=3, plas_chro_labeling=True, label_threshold=13):
         super().__init__()
         if (isTraining):
             self.data_info = pd.read_csv(
@@ -22,7 +22,7 @@ class HDF5Dataset(data.Dataset):
                 file_path+'/h5_data_infos/testing_data_info.csv')
             self.label_info = pd.read_csv(
                 file_path + '/h5_data_infos/testing_label_info.csv')
-            
+
         self.data_cache = {}
         self.plas_chro_labeling = plas_chro_labeling
         self.label_threshold = label_threshold
@@ -49,7 +49,6 @@ class HDF5Dataset(data.Dataset):
     def __len__(self):
         return len(self.get_data_infos('data'))
 
-    
     def _load_data(self, fid, fpath, findex):
 
         with h5py.File(fpath) as h5_file:
@@ -60,14 +59,14 @@ class HDF5Dataset(data.Dataset):
                 self.data_info.at[findex, 'cache_idx'] = idx
                 self.data_info.at[findex+1, 'cache_idx'] = idx+1
 
-
         # remove an element from data cache if size was exceeded
         if len(self.data_cache) > self.data_cache_size:
             # remove one item from the cache at random
             removal_key = list(self.data_cache.keys())[0]
             self.data_cache.pop(removal_key)
             # remove invalid cache_idx
-            self.data_info.loc[self.data_info['file_id'] == removal_key, 'cache_idx'] = -1
+            self.data_info.loc[self.data_info['file_id']
+                               == removal_key, 'cache_idx'] = -1
 
     def _add_to_cache(self, data, data_id):
 
@@ -93,7 +92,8 @@ class HDF5Dataset(data.Dataset):
             self._load_data(fid, fpath, findex)
 
         # get new cache_idx assigned by _load_data_info
-        cache_idx = int(self.get_data_infos(type).iloc[[i]]['cache_idx'].item())
+        cache_idx = int(self.get_data_infos(
+            type).iloc[[i]]['cache_idx'].item())
         return self.data_cache[fid][cache_idx], fid
 
     def get_label_values(self, indices):
