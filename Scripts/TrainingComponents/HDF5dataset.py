@@ -31,7 +31,7 @@ class HDF5Dataset(data.Dataset):
 
     def __getitem__(self, index):
         x, fidx = self.get_data("data", index)
-        if (only_kmers):
+        if (self.only_kmers):
             x = x[15:]
         x = torch.from_numpy(x)
 
