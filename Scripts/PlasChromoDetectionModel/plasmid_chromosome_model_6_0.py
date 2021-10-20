@@ -20,8 +20,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 
-from Scripts.TrainingComponents.HDF5dataset import HDF5Dataset
-from Scripts.TrainingComponents.WeightsCreator import make_weights_for_balanced_classes
+from HDF5dataset import HDF5Dataset
+from WeightsCreator import make_weights_for_balanced_classes
 
 
 # Add Cuda availability
@@ -71,8 +71,8 @@ print(f'{device} set as the default device')
 
 k = 7
 
-inputFeatures = int((4**k) / 2) + 15
-# inputFeatures = 2
+# inputFeatures = int((4**k) / 2) + 15
+inputFeatures = int((4**k) / 2)
 layer_array = [512, 512, 256, 256]
 outputSize = 2
 momentum = 0.4
@@ -88,7 +88,7 @@ print('Importing the dataset....')
 # trainingDataset = HDF5Dataset(
 #     '/home/chamikanandasiri/Test/Plasmid_0.1_Dataset.h5', True)
 trainingDataset = HDF5Dataset(
-    datapath, True, data_cache_size=100, label_threshold=13)
+    datapath, True, only_kmers=True, data_cache_size=100, label_threshold=13)
 datasetsize = len(trainingDataset)
 
 train_size = int(0.8 * len(trainingDataset))
@@ -125,7 +125,7 @@ def plot_accuracies(history):
     plt.xlabel('epoch')
     plt.ylabel('accuracy')
     plt.title('Accuracy vs. No. of epochs')
-    plt.savefig('Figures/accuracies.png')
+    plt.savefig('TestResults/Figures/accuracies.png')
     plt.show()
     plt.clf()
 
@@ -249,15 +249,15 @@ def calculate_accuracy(testingDataset, testDatasetsize):
     
     print("Correct test results", len(correct_df))
     print("Incorrect test results", len(incorrect_df))
+    print(f'Testing accuracy:- {len(correct_df)*100/testDatasetsize}%')
 
-    correct_df.to_csv("correct_df_results.csv")
-    incorrect_df.to_csv("incorrect_df_results.csv")
+    correct_df.to_csv("TestResults/correct_df_results.csv")
+    incorrect_df.to_csv("TestResults/incorrect_df_results.csv")
 
 
 
 model = Model(inputFeatures, layer_array, outputSize)
 model = to_device(model, device)
-model
 
 model.double()
 history = fit(num_epochs, lr, model, train_dl, val_dl, opt_func)
@@ -268,11 +268,11 @@ plot_losses(history)
 
 
 testingDataset = HDF5Dataset(
-    datapath, False, data_cache_size=100, label_threshold=13)
+    datapath, False, only_kmers=True, data_cache_size=100, label_threshold=13)
 
 testDatasetsize = len(testingDataset)
 
-print("The Length of the test dataset is:- ," , testingDataset)
+print("The Length of the test dataset is:- ," , len(testingDataset))
 
 test_dl = DataLoader(testingDataset, batchSize, num_workers=4, pin_memory=True)
 
