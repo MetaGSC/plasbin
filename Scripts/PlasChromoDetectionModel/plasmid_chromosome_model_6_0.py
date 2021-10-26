@@ -22,13 +22,15 @@ import matplotlib.pyplot as plt
 
 from HDF5dataset import HDF5Dataset
 from WeightsCreator import make_weights_for_balanced_classes
-
+from ConfutionMatrix import calculateConfutionMatrix
 
 # Add Cuda availability
 
 # datapath = '/home/chamikanandasiri/Datasets/plasbin_2M'
-# datapath = '/home/chamikanandasiri/Datasets/plasbin_100K'
-datapath = '/home/chamikanandasiri/Datasets/plasbin_4K'
+datapath = '/home/chamikanandasiri/Datasets/plasbin_100K'
+# datapath = '/home/chamikanandasiri/Datasets/plasbin_4K'
+speacial_test_datapath = '/home/chamikanandasiri/Datasets/plasbin_20K_testing'
+unfiltered_test_datapath = '/home/chamikanandasiri/Datasets/plasbin_20K_all_testing'
 
 
 
@@ -73,14 +75,14 @@ k = 7
 
 # inputFeatures = int((4**k) / 2) + 15
 inputFeatures = int((4**k) / 2)
-layer_array = [512, 512, 256, 256]
+layer_array = [512,256]
 outputSize = 2
 momentum = 0.4
-dropoutProb = 0.5
+dropoutProb = 0.3
 batchSize = 200
-num_epochs = 20
+num_epochs = 4
 opt_func = torch.optim.Adam
-lr = 0.001
+lr = 0.05
 num_workers = 2
 
 print('Importing the dataset....')
@@ -138,7 +140,7 @@ def plot_losses(history):
     plt.ylabel('loss')
     plt.legend(['Training', 'Validation'])
     plt.title('Loss vs. No. of epochs')
-    plt.savefig('Figures/losses.png')
+    plt.savefig('TestResults/Figures/losses.png')
     plt.show()
     plt.clf()
 
@@ -168,17 +170,22 @@ class Model(nn.Module):
         self.network = nn.Sequential(
           nn.Linear(in_size, layer_array[0]),
           nn.ReLU(),
-          # nn.Dropout(dropoutProb),
+          nn.Dropout(dropoutProb),
           nn.Linear(layer_array[0], layer_array[1]),
+
+        #   nn.ReLU(),
+        #   nn.Dropout(dropoutProb),
+        #   nn.Linear(layer_array[1], layer_array[2]),
+        #   nn.ReLU(),
+        #   nn.Dropout(dropoutProb),
+        #   nn.Linear(layer_array[2], layer_array[3]),
+        #   nn.ReLU(),
+        #   nn.Dropout(dropoutProb),
+        #   nn.Linear(layer_array[3], out_size)
+
           nn.ReLU(),
-          # nn.Dropout(dropoutProb),
-          nn.Linear(layer_array[1], layer_array[2]),
-          nn.ReLU(),
-          # nn.Dropout(dropoutProb),
-          nn.Linear(layer_array[2], layer_array[3]),
-          nn.ReLU(),
-          # nn.Dropout(dropoutProb),
-          nn.Linear(layer_array[3], out_size)
+          nn.Dropout(dropoutProb),
+          nn.Linear(layer_array[1], out_size)
         )
         
     def forward(self, xb):
@@ -232,7 +239,7 @@ def predict(value, model):
     # Retrieve the class label
     return preds.item()
 
-def calculate_accuracy(testingDataset, testDatasetsize):
+def calculate_accuracy(testingDataset, testDatasetsize, prefix=""):
     cor = []
     incor = []
     for i in range(testDatasetsize):
@@ -246,13 +253,15 @@ def calculate_accuracy(testingDataset, testDatasetsize):
 
     correct_df = pd.DataFrame(cor, columns=['label', 'prediction'])
     incorrect_df = pd.DataFrame(incor, columns=['label', 'prediction'])
+
+    calculateConfutionMatrix(correct_df, incorrect_df)
     
     print("Correct test results", len(correct_df))
     print("Incorrect test results", len(incorrect_df))
     print(f'Testing accuracy:- {len(correct_df)*100/testDatasetsize}%')
 
-    correct_df.to_csv("TestResults/correct_df_results.csv")
-    incorrect_df.to_csv("TestResults/incorrect_df_results.csv")
+    correct_df.to_csv("TestResults/"+prefix+"correct_df_results.csv")
+    incorrect_df.to_csv("TestResults/"+prefix+"incorrect_df_results.csv")
 
 
 
@@ -269,13 +278,16 @@ plot_losses(history)
 
 testingDataset = HDF5Dataset(
     datapath, False, only_kmers=True, data_cache_size=100, label_threshold=13)
+unfilteredDataset = HDF5Dataset(
+    unfiltered_test_datapath, False, only_kmers=True, data_cache_size=100, label_threshold=20)
 
 testDatasetsize = len(testingDataset)
+unfilteredTestDatasetsize = len(unfilteredDataset)
 
-print("The Length of the test dataset is:- ," , len(testingDataset))
-
-test_dl = DataLoader(testingDataset, batchSize, num_workers=4, pin_memory=True)
-
+print("The Length of the test dataset is:-", testDatasetsize)
 calculate_accuracy(testingDataset, testDatasetsize)
 
+print("The Length of the Unfiltered test dataset is:-", unfilteredTestDatasetsize)
+calculate_accuracy(unfilteredDataset,
+                   unfilteredTestDatasetsize, prefix="Unfiltered_")
 

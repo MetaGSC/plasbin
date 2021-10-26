@@ -138,3 +138,4 @@ dmypy.json
 Scripts/PlasChromoDetectionModel/HDF5dataset.py
 Scripts/PlasChromoDetectionModel/WeightsCreator.py
 Scripts/PlasChromoDetectionModel/TestResults/
+Scripts/PlasChromoDetectionModel/ConfutionMatrix.py
