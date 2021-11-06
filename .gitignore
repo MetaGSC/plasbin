@@ -6,10 +6,6 @@ __pycache__/
 JUNK/
 Others/
 Other notebooks/
-Chromosome_data.csv
-Plasmid_data.csv
-target - Copy.csv
-target.csv
 
 # C extensions
 *.so
