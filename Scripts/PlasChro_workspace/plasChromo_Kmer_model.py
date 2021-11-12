@@ -27,8 +27,8 @@ from ConfutionMatrix import calculateConfutionMatrix
 # Add Cuda availability
 
 # datapath = '/home/chamikanandasiri/Datasets/plasbin_2M'
-datapath = '/home/chamikanandasiri/Datasets/plasbin_100K'
-# datapath = '/home/chamikanandasiri/Datasets/plasbin_4K'
+# datapath = '/home/chamikanandasiri/Datasets/plasbin_100K'
+datapath = '/home/chamikanandasiri/Datasets/plasbin_4K'
 speacial_test_datapath = '/home/chamikanandasiri/Datasets/plasbin_20K_testing'
 unfiltered_test_datapath = '/home/chamikanandasiri/Datasets/plasbin_20K_all_testing'
 
@@ -127,7 +127,7 @@ def plot_accuracies(history):
     plt.xlabel('epoch')
     plt.ylabel('accuracy')
     plt.title('Accuracy vs. No. of epochs')
-    plt.savefig('TestResults/Figures/accuracies.png')
+    plt.savefig('WorkSpace_results/Figures/accuracies.png')
     plt.show()
     plt.clf()
 
@@ -140,7 +140,7 @@ def plot_losses(history):
     plt.ylabel('loss')
     plt.legend(['Training', 'Validation'])
     plt.title('Loss vs. No. of epochs')
-    plt.savefig('TestResults/Figures/losses.png')
+    plt.savefig('WorkSpace_results/Figures/losses.png')
     plt.show()
     plt.clf()
 
@@ -260,8 +260,8 @@ def calculate_accuracy(testingDataset, testDatasetsize, prefix=""):
     print("Incorrect test results", len(incorrect_df))
     print(f'Testing accuracy:- {len(correct_df)*100/testDatasetsize}%')
 
-    correct_df.to_csv("TestResults/"+prefix+"correct_df_results.csv")
-    incorrect_df.to_csv("TestResults/"+prefix+"incorrect_df_results.csv")
+    correct_df.to_csv("WorkSpace_results/"+prefix+"correct_df_results.csv")
+    incorrect_df.to_csv("WorkSpace_results/"+prefix+"incorrect_df_results.csv")
 
 
 
@@ -278,16 +278,16 @@ plot_losses(history)
 
 testingDataset = HDF5Dataset(
     datapath, False, only_kmers=True, data_cache_size=100, label_threshold=13)
-unfilteredDataset = HDF5Dataset(
-    unfiltered_test_datapath, False, only_kmers=True, data_cache_size=100, label_threshold=20)
+# unfilteredDataset = HDF5Dataset(
+#     unfiltered_test_datapath, False, only_kmers=True, data_cache_size=100, label_threshold=20)
 
 testDatasetsize = len(testingDataset)
-unfilteredTestDatasetsize = len(unfilteredDataset)
+# unfilteredTestDatasetsize = len(unfilteredDataset)
 
 print("The Length of the test dataset is:-", testDatasetsize)
 calculate_accuracy(testingDataset, testDatasetsize)
 
-print("The Length of the Unfiltered test dataset is:-", unfilteredTestDatasetsize)
-calculate_accuracy(unfilteredDataset,
-                   unfilteredTestDatasetsize, prefix="Unfiltered_")
+# print("The Length of the Unfiltered test dataset is:-", unfilteredTestDatasetsize)
+# calculate_accuracy(unfilteredDataset,
+#                    unfilteredTestDatasetsize, prefix="Unfiltered_")
 

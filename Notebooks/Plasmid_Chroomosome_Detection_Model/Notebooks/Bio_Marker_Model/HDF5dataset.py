@@ -10,7 +10,7 @@ from datetime import datetime
 
 
 class HDF5Dataset(data.Dataset):
-    def __init__(self, file_path, isTraining, data_cache_size=3, plas_chro_labeling=True, only_kmers=False, label_threshold=13):
+    def __init__(self, file_path, isTraining, data_cache_size=3, plas_chro_labeling=True, only_biomarkers=False, label_threshold=13):
         super().__init__()
         if (isTraining):
             self.data_info = pd.read_csv(
@@ -27,12 +27,12 @@ class HDF5Dataset(data.Dataset):
         self.plas_chro_labeling = plas_chro_labeling
         self.label_threshold = label_threshold
         self.data_cache_size = data_cache_size
-        self.only_kmers = only_kmers
+        self.only_biomarkers = only_biomarkers
 
     def __getitem__(self, index):
         x, fidx = self.get_data("data", index)
-        if (self.only_kmers):
-            x = x[15:]
+        if (self.only_biomarkers):
+            x = x[:15]
         x = torch.from_numpy(x)
 
         y, fidy = self.get_data("label", index)

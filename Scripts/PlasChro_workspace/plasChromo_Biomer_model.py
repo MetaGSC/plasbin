@@ -127,7 +127,7 @@ def plot_accuracies(history):
     plt.xlabel('epoch')
     plt.ylabel('accuracy')
     plt.title('Accuracy vs. No. of epochs')
-    plt.savefig('TestResults/Figures/accuracies.png')
+    plt.savefig('WorkSpace_results/Figures/accuracies.png')
     plt.show()
     plt.clf()
 
@@ -140,7 +140,7 @@ def plot_losses(history):
     plt.ylabel('loss')
     plt.legend(['Training', 'Validation'])
     plt.title('Loss vs. No. of epochs')
-    plt.savefig('TestResults/Figures/losses.png')
+    plt.savefig('WorkSpace_results/Figures/losses.png')
     plt.show()
     plt.clf()
 
@@ -260,8 +260,8 @@ def calculate_accuracy(testingDataset, testDatasetsize, prefix=""):
     print("Incorrect test results", len(incorrect_df))
     print(f'Testing accuracy:- {len(correct_df)*100/testDatasetsize}%')
 
-    correct_df.to_csv("TestResults/"+prefix+"correct_df_results.csv")
-    incorrect_df.to_csv("TestResults/"+prefix+"incorrect_df_results.csv")
+    correct_df.to_csv("WorkSpace_results/"+prefix+"correct_df_results.csv")
+    incorrect_df.to_csv("WorkSpace_results/"+prefix+"incorrect_df_results.csv")
 
 
 

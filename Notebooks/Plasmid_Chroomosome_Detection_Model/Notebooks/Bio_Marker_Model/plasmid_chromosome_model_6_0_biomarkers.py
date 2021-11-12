@@ -74,8 +74,8 @@ print(f'{device} set as the default device')
 k = 7
 
 # inputFeatures = int((4**k) / 2) + 15
-inputFeatures = int((4**k) / 2)
-layer_array = [512,256]
+inputFeatures = 15
+layer_array = [512,256, 256]
 outputSize = 2
 momentum = 0.4
 dropoutProb = 0.3
@@ -90,7 +90,7 @@ print('Importing the dataset....')
 # trainingDataset = HDF5Dataset(
 #     '/home/chamikanandasiri/Test/Plasmid_0.1_Dataset.h5', True)
 trainingDataset = HDF5Dataset(
-    datapath, True, only_kmers=True, data_cache_size=100, label_threshold=13)
+    datapath, True, only_biomarkers=True, data_cache_size=100, label_threshold=13)
 datasetsize = len(trainingDataset)
 
 train_size = int(0.8 * len(trainingDataset))
@@ -173,9 +173,9 @@ class Model(nn.Module):
           nn.Dropout(dropoutProb),
           nn.Linear(layer_array[0], layer_array[1]),
 
-        #   nn.ReLU(),
-        #   nn.Dropout(dropoutProb),
-        #   nn.Linear(layer_array[1], layer_array[2]),
+          nn.ReLU(),
+          nn.Dropout(dropoutProb),
+          nn.Linear(layer_array[1], layer_array[2]),
         #   nn.ReLU(),
         #   nn.Dropout(dropoutProb),
         #   nn.Linear(layer_array[2], layer_array[3]),
@@ -239,10 +239,10 @@ def predict(value, model):
     # Retrieve the class label
     return preds.item()
 
-def calculate_accuracy(testingDataset, testDatasetsize, prefix=""):
+def calculate_accuracy(testingDataset, testDatasetsize, model, prefix=""):
     cor = []
     incor = []
-    for i in range(testDatasetsize):
+    for i in tqdm(range(testDatasetsize)):
         prediction = predict(testingDataset[i][0], model)
         label = testingDataset[i][1].item()
         # print(label)
@@ -263,31 +263,77 @@ def calculate_accuracy(testingDataset, testDatasetsize, prefix=""):
     correct_df.to_csv("TestResults/"+prefix+"correct_df_results.csv")
     incorrect_df.to_csv("TestResults/"+prefix+"incorrect_df_results.csv")
 
+def calculate_positive_sequences(dataset, datasize):
+    cols = ['OriT-identity', 'OriT-length', 'OriT-bitscore', 'OriT-count', 'rRNA-length', 'rRNA-bitscore', 'rRNA-count','IF-identity', 'IF-length', 'IF-bitscore', 'IF-count', 'Cir-alignment_a_mean', 'Cir-alignment_b_mean', 'Cir-mismatches mean', 'Cir-count']
+    array = []
+    for i in tqdm(range(datasize)):
+        data = (dataset[i][0]).numpy()
+        # array.append(data)
+        array = np.append(array, data)
+    # print(array)
+    print("Total Count:- ", datasize)
+    df = pd.DataFrame(array, columns = cols)
+
+    counts = df.astype(bool).sum(axis=0)
+
+    print(counts)
+
+    # cor = []
+    # incor = []
+    # for i in tqdm(range(datasize)):
+    #     prediction = predict(dataset[i][0], model)
+    #     label = dataset[i][1].item()
+    #     # print(label)
+    #     if(prediction == label):
+    #         cor.append([label, prediction])
+    #     else:
+    #         incor.append([label, prediction])
+
+    # correct_df = pd.DataFrame(cor, columns=['label', 'prediction'])
+    # incorrect_df = pd.DataFrame(incor, columns=['label', 'prediction'])
+
+    # calculateConfutionMatrix(correct_df, incorrect_df)
+    
+    # print("Correct test results", len(correct_df))
+    # print("Incorrect test results", len(incorrect_df))
+    # print(f'Testing accuracy:- {len(correct_df)*100/datasize}%')
+
+    # correct_df.to_csv("TestResults/"+prefix+"correct_df_results.csv")
+    # incorrect_df.to_csv("TestResults/"+prefix+"incorrect_df_results.csv")
 
 
-model = Model(inputFeatures, layer_array, outputSize)
-model = to_device(model, device)
 
-model.double()
-history = fit(num_epochs, lr, model, train_dl, val_dl, opt_func)
+# model = Model(inputFeatures, layer_array, outputSize)
+# model = to_device(model, device)
 
-plot_accuracies(history)
+# model.double()
+# history = fit(num_epochs, lr, model, train_dl, val_dl, opt_func)
 
-plot_losses(history)
+# plot_accuracies(history)
 
+# plot_losses(history)
+
+
+# testingDataset = HDF5Dataset(
+#     datapath, False, only_biomarkers=True, data_cache_size=100, label_threshold=13)
+# unfilteredDataset = HDF5Dataset(
+#     unfiltered_test_datapath, False, only_biomarkers=True, data_cache_size=100, label_threshold=20)
+
+# testDatasetsize = len(testingDataset)
+# unfilteredTestDatasetsize = len(unfilteredDataset)
+
+# print("The Length of the test dataset is:-", testDatasetsize)
+# calculate_accuracy(testingDataset, testDatasetsize, model)
+
+# print("The Length of the Unfiltered test dataset is:-", unfilteredTestDatasetsize)
+# calculate_accuracy(unfilteredDataset,
+#                    unfilteredTestDatasetsize, model, prefix="Unfiltered_")
 
 testingDataset = HDF5Dataset(
-    datapath, False, only_kmers=True, data_cache_size=100, label_threshold=13)
-unfilteredDataset = HDF5Dataset(
-    unfiltered_test_datapath, False, only_kmers=True, data_cache_size=100, label_threshold=20)
+    datapath, True, only_biomarkers=True, data_cache_size=100, label_threshold=13)
+# unfilteredDataset = HDF5Dataset(
+#     unfiltered_test_datapath, False, only_biomarkers=True, data_cache_size=100, label_threshold=20)
 
 testDatasetsize = len(testingDataset)
-unfilteredTestDatasetsize = len(unfilteredDataset)
 
-print("The Length of the test dataset is:-", testDatasetsize)
-calculate_accuracy(testingDataset, testDatasetsize)
-
-print("The Length of the Unfiltered test dataset is:-", unfilteredTestDatasetsize)
-calculate_accuracy(unfilteredDataset,
-                   unfilteredTestDatasetsize, prefix="Unfiltered_")
-
+calculate_positive_sequences(testingDataset, testDatasetsize)
