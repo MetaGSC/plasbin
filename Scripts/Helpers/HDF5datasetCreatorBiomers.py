@@ -14,8 +14,9 @@ standard_category_list = ['plasmid', 'extra-plasmid', 'chromosome']
 #                 'inc-fac': ['id', 'IF-identity', 'IF-length', 'IF-bitscore', 'IF-count'],
 #                 'circular': ['id', 'Cir-alignment_a_mean', 'Cir-alignment_b_mean', 'Cir-mismatches mean', 'Cir-count']}
 
-standard_feature_list = ['orit', 'inc-fac', 'circular','rrna','seq']
+standard_feature_list = ['orit', 'inc-fac', 'circular', 'rrna']
 featureNames = {'orit': ['id', 'OriT-identity', 'OriT-length', 'OriT-bitscore', 'OriT-count'],
+                'rrna': ['id', 'rRNA-length', 'rRNA-bitscore', 'rRNA-count'],
                 'inc-fac': ['id', 'IF-identity', 'IF-length', 'IF-bitscore', 'IF-count'],
                 'circular': ['id', 'Cir-alignment_a_mean', 'Cir-alignment_b_mean', 'Cir-mismatches mean', 'Cir-count']}
 
@@ -134,7 +135,6 @@ def create_hdf5_datasets(directory, plasmid_classes_csv, chromosome_classes_csv,
         temp_df, how="outer", on=['batch', 'id', 'seq_ID', 'Assembly_Accession', 'Phylum', 'label', 'dom_seq_ID'])
     chromosome_labels_df['type'] = chromosome_labels_df['type'].fillna("Train")
 
-
     temp_df1 = chromosome_labels_df.sample(frac=0.333333)
     temp_df1['group'] = 'G1'
     chromosome_labels_df = chromosome_labels_df.merge(temp_df1, how="left", on=[
@@ -217,6 +217,11 @@ def create_hdf5_datasets(directory, plasmid_classes_csv, chromosome_classes_csv,
             f'Training plasmid count:{len(plasmid_features_train_df)}')
         _logToFilewithPrint(
             f'Testing plasmid count:{len(plasmid_features_test_df)}')
+
+        plasmid_features_train_df.to_csv(
+            hdf5_path+'plasmid_biomers_train.csv', index=False)
+        plasmid_features_test_df.to_csv(
+            hdf5_path+'plasmid_biomers_test.csv', index=False)
 
         with h5py.File(training_hdf5_path, 'a') as hdf:
             _logToFilewithPrint(f'Training.h5 created at {training_hdf5_path}')
@@ -301,6 +306,11 @@ def create_hdf5_datasets(directory, plasmid_classes_csv, chromosome_classes_csv,
             f'Training chromosome count:{len(chromosome_features_train_df)}')
         _logToFilewithPrint(
             f'Testing chromosome count:{len(chromosome_features_test_df)}')
+
+        chromosome_features_train_df.to_csv(
+            hdf5_path+'chromosome_biomers_train.csv', index=False)
+        chromosome_features_test_df.to_csv(hdf5_path +
+                                           'chromosome_biomers_test.csv', index=False)
 
         with h5py.File(training_hdf5_path, 'a') as hdf:
             print('Writing Training Data....')
@@ -399,7 +409,7 @@ def _checkFileStructure(directory, hdf5_path, plasmid_classes_csv, chromosome_cl
                 batch_count = feature_batch_count
                 batch_file_array = feature_batch_files
             elif (feature_batch_count != batch_count):
-                print(feature_batch_count,batch_count)
+                print(feature_batch_count, batch_count)
                 raise RuntimeError(
                     f'No of batches in {feature_name} of {category_name} does not match with previous batch count')
         batchFiles.append(batch_file_array)
@@ -409,7 +419,7 @@ def _read_features(path, selected_files_array):
     featurefiles = os.listdir(path)
     feature_df = pd.DataFrame()
     for ff in featurefiles:
-        if (ff == 'fragments' or ff == '7mers' or ff=='rrna' or ff=='seq'):
+        if (ff == 'fragments' or ff == '7mers' or ff == 'seq'):
             continue
         print(ff)
         single_f_df = _read_feature_files(
