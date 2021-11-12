@@ -131,7 +131,4 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-Scripts/PlasChromoDetectionModel/HDF5dataset.py
-Scripts/PlasChromoDetectionModel/WeightsCreator.py
-Scripts/PlasChromoDetectionModel/TestResults/
-Scripts/PlasChromoDetectionModel/ConfutionMatrix.py
+Scripts/PlasChro_workspace/WorkSpace_results
