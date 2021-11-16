@@ -6,6 +6,7 @@ __pycache__/
 JUNK/
 Others/
 Other notebooks/
+Scripts/PlasChro_workspace/
 
 # C extensions
 *.so
@@ -131,4 +132,10 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-Scripts/PlasChro_workspace/WorkSpace_results
+
+Scripts/PlasChro_workspace/ConfutionMatrix.py
+Scripts/PlasChro_workspace/plasChromo_Biomer_model.py
+Scripts/PlasChro_workspace/WorkSpace_results/correct_df_results.csv
+Scripts/PlasChro_workspace/WorkSpace_results/incorrect_df_results.csv
+Scripts/PlasChro_workspace/WorkSpace_results/Figures/accuracies.png
+Scripts/PlasChro_workspace/WorkSpace_results/Figures/losses.png
