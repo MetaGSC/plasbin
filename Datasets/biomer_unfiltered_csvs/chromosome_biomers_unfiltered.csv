@@ -1,4 +1,4 @@
-id,rRNA-length,rRNA-bitscore,rRNA-count,OriT-identity,OriT-length,OriT-bitscore,OriT-count,IF-identity,IF-length,IF-bitscore,IF-count,gcc-1,gcc-2,gcc-3,gcc-4,gcc-5,Cir-alignment_a_mean,Cir-alignment_b_mean,Cir-mismatches mean,Cir-count,type
+id,rRNA-length,rRNA-bitscore,rRNA-count,OriT-identity,OriT-length,OriT-bitscore,OriT-count,IF-identity,IF-length,IF-bitscore,IF-count,a%,c%,g%,t%,gc-content,Cir-alignment_a_mean,Cir-alignment_b_mean,Cir-mismatches mean,Cir-count,type
 0_c,1484.0,1573.0999999999997,3.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.19201888784062207,0.30814557958107874,0.30687690644712295,0.19295862613117626,0.6150224860282016,17076.0,17084.0,528.0,11.0,Train
 1_c,1539.0,1531.0,6.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.30943370305445866,0.18904888442730727,0.19189440474754593,0.3096230077706882,0.3809432891748532,17830.0,17832.0,46.0,7.0,Train
 2_c,1541.0,1577.9142857142856,7.0,100.0,157.0,291.0,1.0,0.0,0.0,0.0,0.0,0.2461543852272329,0.25430016442895814,0.25374984656665067,0.24579560377715823,0.5080500109956088,50152.0,50159.0,694.0,35.0,Train
