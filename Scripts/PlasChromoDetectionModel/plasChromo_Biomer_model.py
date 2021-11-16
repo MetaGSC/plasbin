@@ -26,7 +26,7 @@ from ConfutionMatrix import calculateConfutionMatrix
 
 # Add Cuda availability
 
-datapath = '/home/chamikanandasiri/Biomer_datasets/biomers_18k'
+datapath = '/home/chamikanandasiri/Biomer_datasets/biomers_full'
 
 
 print(f'torch vesrion:{torch.__version__}  cuda availability:{torch.cuda.is_available()} with {torch.cuda.device_count()} GPU devices')
@@ -69,13 +69,13 @@ print(f'{device} set as the default device')
 k = 7
 
 # inputFeatures = int((4**k) / 2) + 15
-inputFeatures = 12
-layer_array = [8]
+inputFeatures = 15
+layer_array = [8,6,4]
 outputSize = 2
 momentum = 0.4
 dropoutProb = 0.3
 batchSize = 200
-num_epochs = 4
+num_epochs = 3
 opt_func = torch.optim.Adam
 lr = 0.05
 num_workers = 2
@@ -141,7 +141,7 @@ def plot_losses(history):
 
 def fit(epochs, lr, model, train_loader, val_loader, opt_func=torch.optim.SGD):
     history = []
-    optimizer = opt_func(model.parameters(), lr)
+    optimizer = opt_func(model.parameters(), lr=lr)
     for epoch in range(epochs):
         # Training Phase 
         model.train()
@@ -164,23 +164,23 @@ class Model(nn.Module):
         super().__init__()
         self.network = nn.Sequential(
           nn.Linear(in_size, layer_array[0]),
-        #   nn.ReLU(),
-        #   nn.Dropout(dropoutProb),
-        #   nn.Linear(layer_array[0], layer_array[1]),
+          nn.LeakyReLU(),
+          nn.Dropout(dropoutProb),
+          nn.Linear(layer_array[0], layer_array[1]),
 
-        #   nn.ReLU(),
-        #   nn.Dropout(dropoutProb),
-        #   nn.Linear(layer_array[1], layer_array[2]),
+          nn.LeakyReLU(),
+          nn.Dropout(dropoutProb),
+          nn.Linear(layer_array[1], layer_array[2]),
         #   nn.ReLU(),
         #   nn.Dropout(dropoutProb),
         #   nn.Linear(layer_array[2], layer_array[3]),
         #   nn.ReLU(),
         #   nn.Dropout(dropoutProb),
-        #   nn.Linear(layer_array[3], out_size)
+        #   nn.Linear(layer_array[3], out_size),
 
-          nn.ReLU(),
+          nn.LeakyReLU(),
           nn.Dropout(dropoutProb),
-          nn.Linear(layer_array[0], out_size)
+          nn.Linear(layer_array[2], out_size)
         )
         
     def forward(self, xb):

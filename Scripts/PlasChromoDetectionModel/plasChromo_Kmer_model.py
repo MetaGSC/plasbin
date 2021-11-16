@@ -20,13 +20,18 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 
-from HDF5dataset_biomer import HDF5Dataset
+from HDF5dataset import HDF5Dataset
 from WeightsCreator import make_weights_for_balanced_classes
 from ConfutionMatrix import calculateConfutionMatrix
 
 # Add Cuda availability
 
-datapath = '/home/chamikanandasiri/Biomer_datasets/biomers_18k'
+# datapath = '/home/chamikanandasiri/Datasets/plasbin_2M'
+# datapath = '/home/chamikanandasiri/Datasets/plasbin_100K'
+datapath = '/home/chamikanandasiri/Datasets/plasbin_4K'
+speacial_test_datapath = '/home/chamikanandasiri/Datasets/plasbin_20K_testing'
+unfiltered_test_datapath = '/home/chamikanandasiri/Datasets/plasbin_20K_all_testing'
+
 
 
 print(f'torch vesrion:{torch.__version__}  cuda availability:{torch.cuda.is_available()} with {torch.cuda.device_count()} GPU devices')
@@ -69,8 +74,8 @@ print(f'{device} set as the default device')
 k = 7
 
 # inputFeatures = int((4**k) / 2) + 15
-inputFeatures = 12
-layer_array = [8]
+inputFeatures = int((4**k) / 2)
+layer_array = [512,256]
 outputSize = 2
 momentum = 0.4
 dropoutProb = 0.3
@@ -85,7 +90,7 @@ print('Importing the dataset....')
 # trainingDataset = HDF5Dataset(
 #     '/home/chamikanandasiri/Test/Plasmid_0.1_Dataset.h5', True)
 trainingDataset = HDF5Dataset(
-    datapath, True, data_cache_size=100, label_threshold=13)
+    datapath, True, only_kmers=True, data_cache_size=100, label_threshold=13)
 datasetsize = len(trainingDataset)
 
 train_size = int(0.8 * len(trainingDataset))
@@ -164,9 +169,9 @@ class Model(nn.Module):
         super().__init__()
         self.network = nn.Sequential(
           nn.Linear(in_size, layer_array[0]),
-        #   nn.ReLU(),
-        #   nn.Dropout(dropoutProb),
-        #   nn.Linear(layer_array[0], layer_array[1]),
+          nn.ReLU(),
+          nn.Dropout(dropoutProb),
+          nn.Linear(layer_array[0], layer_array[1]),
 
         #   nn.ReLU(),
         #   nn.Dropout(dropoutProb),
@@ -180,7 +185,7 @@ class Model(nn.Module):
 
           nn.ReLU(),
           nn.Dropout(dropoutProb),
-          nn.Linear(layer_array[0], out_size)
+          nn.Linear(layer_array[1], out_size)
         )
         
     def forward(self, xb):
@@ -272,10 +277,17 @@ plot_losses(history)
 
 
 testingDataset = HDF5Dataset(
-    datapath, False, data_cache_size=100, label_threshold=13)
+    datapath, False, only_kmers=True, data_cache_size=100, label_threshold=13)
+# unfilteredDataset = HDF5Dataset(
+#     unfiltered_test_datapath, False, only_kmers=True, data_cache_size=100, label_threshold=20)
 
 testDatasetsize = len(testingDataset)
+# unfilteredTestDatasetsize = len(unfilteredDataset)
 
 print("The Length of the test dataset is:-", testDatasetsize)
 calculate_accuracy(testingDataset, testDatasetsize)
+
+# print("The Length of the Unfiltered test dataset is:-", unfilteredTestDatasetsize)
+# calculate_accuracy(unfilteredDataset,
+#                    unfilteredTestDatasetsize, prefix="Unfiltered_")
 
