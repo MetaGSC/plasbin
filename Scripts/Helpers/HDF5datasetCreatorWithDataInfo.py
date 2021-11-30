@@ -13,7 +13,7 @@ standard_feature_list = ['7mers', 'circular',
 featureNames = {'orit': ['id', 'OriT-identity', 'OriT-length', 'OriT-bitscore', 'OriT-count'],
                 'rrna': ['id', 'rRNA-length', 'rRNA-bitscore', 'rRNA-count'],
                 'inc-fac': ['id', 'IF-identity', 'IF-length', 'IF-bitscore', 'IF-count'],
-                'circular': ['id', 'Cir-alignment_a_mean', 'Cir-alignment_b_mean', 'Cir-mismatches mean', 'Cir-count'],
+                'circular': ['id', 'Cir-alignment_a_mean', 'Cir-alignment_b_mean', 'Cir-mismatches_mean', 'Cir-count'],
                 '7mers': ['7mer - '+str(i) for i in range(8192)]}
 logfile = None
 featureCounts = {}

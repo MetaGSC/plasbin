@@ -12,14 +12,14 @@ standard_category_list = ['plasmid', 'extra-plasmid', 'chromosome']
 # featureNames = {'orit': ['id', 'OriT-identity', 'OriT-length', 'OriT-bitscore', 'OriT-count'],
 #                 'rrna': ['id', 'rRNA-length', 'rRNA-bitscore', 'rRNA-count'],
 #                 'inc-fac': ['id', 'IF-identity', 'IF-length', 'IF-bitscore', 'IF-count'],
-#                 'circular': ['id', 'Cir-alignment_a_mean', 'Cir-alignment_b_mean', 'Cir-mismatches mean', 'Cir-count']}
+#                 'circular': ['id', 'Cir-alignment_a_mean', 'Cir-alignment_b_mean', 'Cir-mismatches_mean', 'Cir-count']}
 
 standard_feature_list = ['orit', 'inc-fac', 'circular', 'rrna', 'gccontent','seq']
 featureNames = {'orit': ['id', 'OriT-identity', 'OriT-length', 'OriT-bitscore', 'OriT-count'],
                 'rrna': ['id', 'rRNA-length', 'rRNA-bitscore', 'rRNA-count'],
                 'inc-fac': ['id', 'IF-identity', 'IF-length', 'IF-bitscore', 'IF-count'],
                 'gccontent':['id','a%','c%','g%','t%','gc-content'],
-                'circular': ['id', 'Cir-alignment_a_mean', 'Cir-alignment_b_mean', 'Cir-mismatches mean', 'Cir-count']}
+                'circular': ['id', 'Cir-alignment_a_mean', 'Cir-alignment_b_mean', 'Cir-mismatches_mean', 'Cir-count']}
 
 
 logfile = None
